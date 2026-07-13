@@ -12,8 +12,8 @@ resolve areas, and compute market statistics, all from Claude.
 Booli fronts www.booli.se — including its GraphQL API — with a Cloudflare
 bot wall that blocks server-side clients. booli-mcp therefore reads Booli's
 consumer GraphQL API by routing each query through **your own signed-in
-www.booli.se browser tab** via the [fetchproxy](https://github.com/) bridge
-(the Transporter extension), reusing your Cloudflare-cleared session. No
+www.booli.se browser tab** via the fetchproxy bridge (the Transporter
+extension), reusing your Cloudflare-cleared session. No
 Booli login is required — just a normal page view. All tools are read-only.
 
 `BOOLI_TRANSPORT` selects the path: `auto` (default — direct fetch first,
