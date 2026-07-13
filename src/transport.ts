@@ -1,28 +1,34 @@
 /**
- * Transport-agnostic interface for talking to the Booli REST API.
+ * Transport-agnostic interface for talking to Booli's consumer GraphQL
+ * endpoint (`www.booli.se/graphql`).
  *
  * The whole client (src/client.ts) is written against this one method so
  * tests can drive every tool through an in-memory fake (see
- * tests/helpers.ts) with zero network, and so the credential/signing +
- * HTTP concerns stay isolated in one place (src/transport-direct.ts).
+ * tests/helpers.ts) with zero network, and so the direct-fetch and
+ * fetchproxy-bridge transports are interchangeable without touching a
+ * single tool.
  *
- * The transport owns the wire round-trip: it signs the request (Booli's
- * per-request HMAC query auth), performs the GET, retries transient
- * failures, and parses the JSON body. It does NOT interpret the Booli
- * response envelope (`listings` vs `sold` vs `areas`, empty results) —
- * those are Booli-semantic concerns and live on the client.
+ * The transport owns ONLY the wire round-trip + JSON parse. It does NOT
+ * interpret GraphQL `errors`, map them to typed exceptions, or reach into
+ * `data` — those are Booli-semantic concerns and live on the client.
  */
 
-/** Query parameters for a Booli request (auth params are added by the transport). */
-export type BooliQuery = Record<string, string | number | undefined>;
+/** The GraphQL response envelope: exactly one of `data` / `errors` is meaningful. */
+export interface GraphQLResponse<T> {
+  data?: T | null;
+  errors?: { message: string }[];
+}
 
 export interface BooliTransport {
   /**
-   * GET one Booli endpoint (e.g. `listings`, `sold`, `areas`,
-   * `listings/123`) with the given query params, returning the parsed
-   * JSON body. Rejects on a missing-credentials config error, a
-   * transport-level failure (network error, non-2xx after retries,
-   * unparseable body), or a Booli `FAILURE_*` error response.
+   * Execute one GraphQL operation and return the raw `{ data, errors }`
+   * envelope. Rejects only on transport-level failure (network error,
+   * non-2xx after retries, unparseable body, Cloudflare challenge) — a
+   * GraphQL `errors` array is a successful round-trip and comes back in
+   * the envelope for the client to classify.
    */
-  get<T>(path: string, query?: BooliQuery): Promise<T>;
+  graphql<T>(
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<GraphQLResponse<T>>;
 }

@@ -9,25 +9,23 @@ resolve areas, and compute market statistics, all from Claude.
 
 ## How it works
 
-booli-mcp reads Booli's classic REST API at `api.booli.se`. Each request
-is signed per-call with your Booli **caller id** + **API key** (an HMAC of
-`callerId + time + apiKey + unique`). Requests go straight to Booli over
-plain HTTPS — no browser bridge, no scraping of the bot-walled consumer
-site. All tools are read-only.
+Booli fronts www.booli.se — including its GraphQL API — with a Cloudflare
+bot wall that blocks server-side clients. booli-mcp therefore reads Booli's
+consumer GraphQL API by routing each query through **your own signed-in
+www.booli.se browser tab** via the [fetchproxy](https://github.com/) bridge
+(the Transporter extension), reusing your Cloudflare-cleared session. No
+Booli login is required — just a normal page view. All tools are read-only.
+
+`BOOLI_TRANSPORT` selects the path: `auto` (default — direct fetch first,
+browser-bridge fallback when walled), `fetchproxy` (always the bridge), or
+`direct`. The fetchproxy fleet shares WS port `37149` (`BOOLI_WS_PORT`).
 
 ## Setup
 
-1. Request API access at <https://www.booli.se/p/api> — accept the API
-   terms; the caller id + key are emailed to you.
-2. Provide them as environment variables:
-
-   ```
-   BOOLI_CALLER_ID=your-caller-id
-   BOOLI_API_KEY=your-api-key
-   ```
-
-   (See `.env.example`.) The server boots without them, but every tool
-   call errors until they're set. Run `booli_healthcheck` to verify.
+1. Install the Transporter (fetchproxy) browser extension and keep a
+   **www.booli.se** tab open.
+2. On the first request, approve the one-time pairing prompt in Transporter.
+3. Run `booli_healthcheck` to confirm the path is working.
 
 ## Install
 
@@ -37,11 +35,7 @@ site. All tools are read-only.
   "mcpServers": {
     "booli": {
       "command": "npx",
-      "args": ["-y", "booli-mcp"],
-      "env": {
-        "BOOLI_CALLER_ID": "your-caller-id",
-        "BOOLI_API_KEY": "your-api-key"
-      }
+      "args": ["-y", "booli-mcp"]
     }
   }
 }
@@ -51,17 +45,16 @@ site. All tools are read-only.
 
 | Tool | What it does |
 | --- | --- |
-| `booli_search_areas` | Resolve a place name / coordinate to Booli area ids |
+| `booli_search_areas` | Resolve a place name to Booli area ids |
 | `booli_search_listings` | Search active for-sale listings by area + filters |
-| `booli_get_listing` | Full detail for one for-sale listing by Booli id |
+| `booli_get_listing` | Full detail for one property (active or sold) by residence id |
 | `booli_search_sold` | Search sold listings (slutpriser) with final prices |
-| `booli_get_sold` | Full detail for one sold listing by Booli id |
 | `booli_market_stats` | Median/average sold-price statistics for an area |
-| `booli_healthcheck` | Verify the API is reachable and credentials work |
+| `booli_healthcheck` | Verify the data path (direct or via the browser bridge) |
 
-Searches scope by `area_id` (from `booli_search_areas`), free-text `q`, a
-`center`+`dim` rectangle, or a `bbox`. Money is SEK, areas m². See
-[`docs/BOOLI-API.md`](docs/BOOLI-API.md) for the underlying API reference.
+Searches scope by `area_id` (from `booli_search_areas`) or a free-text
+`location`. Money is SEK, areas m². See
+[`docs/BOOLI-API.md`](docs/BOOLI-API.md) for the underlying GraphQL API.
 
 ## Development
 

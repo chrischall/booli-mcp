@@ -1,10 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
-import { DirectTransport } from '../src/transport-direct.js';
-import { buildAuthParams } from '../src/auth.js';
+import { CloudflareChallengeError, DirectTransport } from '../src/transport-direct.js';
 
-/** A fetch stub that records the URL(s) it was called with. */
+/** A fetch stub returning queued responses (last one repeats). */
 function stubFetch(
-  responses: Array<{ ok?: boolean; status?: number; body?: unknown; text?: string }>,
+  responses: Array<{
+    ok?: boolean;
+    status?: number;
+    body?: unknown;
+    text?: string;
+    headers?: Record<string, string>;
+  }>,
 ) {
   const calls: string[] = [];
   let i = 0;
@@ -22,175 +27,96 @@ function stubFetch(
       async text() {
         return r.text ?? JSON.stringify(r.body);
       },
-      headers: new Map(),
+      headers: { get: (k: string) => r.headers?.[k.toLowerCase()] ?? null },
     } as unknown as Response;
   });
   return { impl: impl as unknown as typeof fetch, calls };
 }
 
-const CREDS = { callerId: 'caller-1', apiKey: 'secret-key' };
-
-describe('DirectTransport.get', () => {
-  it('signs the request and appends caller/time/unique/hash + query params', async () => {
-    const { impl, calls } = stubFetch([{ body: { listings: [] } }]);
-    const t = new DirectTransport({
-      ...CREDS,
-      fetchImpl: impl,
-      now: () => 1_700_000_000_000,
-      uniqueFn: () => 'abcdef0123456789',
-    });
-    await t.get('listings', { q: 'nacka', minRooms: 2 });
-
-    const url = new URL(calls[0]!);
-    expect(url.origin + url.pathname).toBe('https://api.booli.se/listings');
-    expect(url.searchParams.get('q')).toBe('nacka');
-    expect(url.searchParams.get('minRooms')).toBe('2');
-    expect(url.searchParams.get('callerId')).toBe('caller-1');
-    expect(url.searchParams.get('time')).toBe('1700000000000');
-    expect(url.searchParams.get('unique')).toBe('abcdef0123456789');
-    const expected = buildAuthParams({
-      ...CREDS,
-      time: 1_700_000_000_000,
-      unique: 'abcdef0123456789',
-    });
-    expect(url.searchParams.get('hash')).toBe(expected.hash);
-    // The secret key is never placed in the URL.
-    expect(calls[0]).not.toContain('secret-key');
+describe('DirectTransport.graphql', () => {
+  it('POSTs the operation to the GraphQL endpoint and returns the envelope', async () => {
+    const { impl, calls } = stubFetch([{ body: { data: { ok: true } } }]);
+    const t = new DirectTransport({ fetchImpl: impl });
+    const res = await t.graphql('query X { x }', { a: 1 });
+    expect(res).toEqual({ data: { ok: true } });
+    expect(calls[0]).toBe('https://www.booli.se/graphql');
   });
 
-  it('omits undefined query params', async () => {
-    const { impl, calls } = stubFetch([{ body: {} }]);
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl });
-    await t.get('sold', { q: 'nacka', maxRooms: undefined });
-    const url = new URL(calls[0]!);
-    expect(url.searchParams.has('maxRooms')).toBe(false);
-    expect(url.searchParams.get('q')).toBe('nacka');
-  });
-
-  it('returns the parsed JSON body on 2xx', async () => {
-    const { impl } = stubFetch([{ body: { areas: [{ booliId: 76 }] } }]);
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl });
-    const data = await t.get<{ areas: { booliId: number }[] }>('areas', {
-      q: 'nacka',
-    });
-    expect(data.areas[0]!.booliId).toBe(76);
-  });
-
-  it('throws an actionable config error when credentials are missing', async () => {
-    const { impl } = stubFetch([{ body: {} }]);
-    const t = new DirectTransport({ fetchImpl: impl, callerId: '', apiKey: '' });
-    await expect(t.get('listings')).rejects.toThrow(/BOOLI_CALLER_ID/);
-    // No network call was made.
-    expect((impl as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(
-      0,
-    );
-  });
-
-  it('surfaces a 403 with a credentials hint and never leaks the body verbatim as JSON', async () => {
+  it('throws CloudflareChallengeError on the cf-mitigated header', async () => {
     const { impl } = stubFetch([
-      { ok: false, status: 403, text: 'FAILURE_INVALID_HASH - bad hash' },
+      { ok: false, status: 403, text: 'blocked', headers: { 'cf-mitigated': 'challenge' } },
     ]);
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl, maxRetries: 0 });
-    await expect(t.get('listings')).rejects.toThrow(/HTTP 403/);
-    await expect(t.get('listings')).rejects.toThrow(/BOOLI_CALLER_ID/);
+    const t = new DirectTransport({ fetchImpl: impl, maxRetries: 0 });
+    await expect(t.graphql('q', {})).rejects.toBeInstanceOf(CloudflareChallengeError);
   });
 
-  it('retries retryable 5xx then succeeds', async () => {
+  it('detects the interstitial body markers as a challenge', async () => {
+    const { impl } = stubFetch([
+      { ok: false, status: 403, text: '<html><title>Just a moment...</title>' },
+    ]);
+    const t = new DirectTransport({ fetchImpl: impl, maxRetries: 0 });
+    await expect(t.graphql('q', {})).rejects.toBeInstanceOf(CloudflareChallengeError);
+  });
+
+  it('surfaces a non-challenge hard error with body + diagnostics', async () => {
+    const { impl } = stubFetch([
+      { ok: false, status: 400, text: 'bad query', headers: { server: 'nginx' } },
+    ]);
+    const t = new DirectTransport({ fetchImpl: impl, maxRetries: 0 });
+    await expect(t.graphql('q', {})).rejects.toThrow(/HTTP 400.*bad query/s);
+    await expect(t.graphql('q', {})).rejects.not.toBeInstanceOf(CloudflareChallengeError);
+  });
+
+  it('tolerates an unreadable error body on a hard failure', async () => {
+    const badBody = {
+      ok: false,
+      status: 404,
+      async json() { throw new Error('x'); },
+      async text() { throw new Error('stream broke'); },
+      headers: { get: () => null },
+    } as unknown as Response;
+    const impl = (async () => badBody) as unknown as typeof fetch;
+    const t = new DirectTransport({ fetchImpl: impl, maxRetries: 0 });
+    // 404 is non-retryable → hardHttpError; the text() throw is swallowed and
+    // the message carries just the status (empty body, no diagnostics).
+    await expect(t.graphql('q', {})).rejects.toThrow(/HTTP 404/);
+  });
+
+  it('retries a retryable 5xx then succeeds', async () => {
     const { impl, calls } = stubFetch([
       { ok: false, status: 503, text: 'busy' },
-      { body: { listings: [{ booliId: 1 }] } },
+      { body: { data: { ok: 1 } } },
     ]);
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl });
-    const data = await t.get<{ listings: unknown[] }>('listings');
-    expect(data.listings).toHaveLength(1);
+    const t = new DirectTransport({ fetchImpl: impl });
+    expect(await t.graphql('q', {})).toEqual({ data: { ok: 1 } });
     expect(calls).toHaveLength(2);
   });
 
   it('gives up after maxRetries on persistent 5xx', async () => {
     const { impl, calls } = stubFetch([{ ok: false, status: 500, text: 'down' }]);
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl, maxRetries: 1 });
-    await expect(t.get('listings')).rejects.toThrow(/Booli API/);
+    const t = new DirectTransport({ fetchImpl: impl, maxRetries: 1 });
+    await expect(t.graphql('q', {})).rejects.toThrow(/HTTP 500/);
     expect(calls).toHaveLength(2);
   });
 
-  it('throws when a 2xx body is not JSON', async () => {
-    const { impl } = stubFetch([{ ok: true, status: 200, text: '<html>nope' }]);
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl, maxRetries: 0 });
-    await expect(t.get('listings')).rejects.toThrow(/non-JSON/);
-  });
-
-  it('adds the credentials hint on a 401 too', async () => {
-    const { impl } = stubFetch([{ ok: false, status: 401, text: 'unauthorized' }]);
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl, maxRetries: 0 });
-    await expect(t.get('listings')).rejects.toThrow(/HTTP 401.*BOOLI_CALLER_ID/s);
-  });
-
-  it('omits the hint on a non-auth hard error and tolerates an unreadable body', async () => {
-    const badBody = {
-      ok: false,
-      status: 418,
-      async json() {
-        throw new Error('nope');
-      },
-      async text() {
-        throw new Error('body stream broke');
-      },
-      headers: new Map(),
-    } as unknown as Response;
-    const impl = (async () => badBody) as unknown as typeof fetch;
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl, maxRetries: 0 });
-    await expect(t.get('listings')).rejects.toThrow(/HTTP 418/);
-    await expect(t.get('listings')).rejects.not.toThrow(/BOOLI_CALLER_ID/);
-  });
-
-  it('reads credentials from the environment and honours an explicit timeout', async () => {
-    const prev = {
-      c: process.env.BOOLI_CALLER_ID,
-      k: process.env.BOOLI_API_KEY,
-    };
-    process.env.BOOLI_CALLER_ID = 'env-caller';
-    process.env.BOOLI_API_KEY = 'env-key';
-    try {
-      const { impl, calls } = stubFetch([{ body: { areas: [] } }]);
-      const t = new DirectTransport({ fetchImpl: impl, timeoutMs: 5_000 });
-      await t.get('areas', { q: 'x' });
-      const url = new URL(calls[0]!);
-      expect(url.searchParams.get('callerId')).toBe('env-caller');
-      expect(url.searchParams.has('hash')).toBe(true);
-    } finally {
-      process.env.BOOLI_CALLER_ID = prev.c;
-      process.env.BOOLI_API_KEY = prev.k;
-    }
-  });
-
-  it('defaults to the global fetch when none is injected', () => {
-    // Construction alone exercises the `?? fetch` default; no request is made.
-    const t = new DirectTransport({ ...CREDS });
-    expect(t).toBeInstanceOf(DirectTransport);
+  it('surfaces a non-Error network rejection after retries', async () => {
+    const impl = (async () => {
+      throw 'raw failure';
+    }) as unknown as typeof fetch;
+    const t = new DirectTransport({ fetchImpl: impl, maxRetries: 0 });
+    await expect(t.graphql('q', {})).rejects.toThrow(/request failed/);
   });
 
   it('aborts a request that exceeds the timeout', async () => {
     const impl = ((_url: string, opts: { signal: AbortSignal }) =>
       new Promise((_resolve, reject) => {
-        opts.signal.addEventListener('abort', () =>
-          reject(new Error('aborted by timeout')),
-        );
+        opts.signal.addEventListener('abort', () => reject(new Error('aborted')));
       })) as unknown as typeof fetch;
-    const t = new DirectTransport({
-      ...CREDS,
-      fetchImpl: impl,
-      timeoutMs: 5,
-      maxRetries: 0,
-    });
-    await expect(t.get('listings')).rejects.toThrow(/aborted by timeout/);
+    const t = new DirectTransport({ fetchImpl: impl, timeoutMs: 5, maxRetries: 0 });
+    await expect(t.graphql('q', {})).rejects.toThrow(/aborted/);
   });
 
-  it('surfaces a non-Error transport rejection', async () => {
-    // eslint-disable-next-line @typescript-eslint/only-throw-error
-    const impl = (async () => {
-      throw 'raw string failure';
-    }) as unknown as typeof fetch;
-    const t = new DirectTransport({ ...CREDS, fetchImpl: impl, maxRetries: 0 });
-    await expect(t.get('listings')).rejects.toThrow(/raw string failure/);
+  it('defaults to the global fetch when none is injected', () => {
+    expect(new DirectTransport()).toBeInstanceOf(DirectTransport);
   });
 });

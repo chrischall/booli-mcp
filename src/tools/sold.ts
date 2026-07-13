@@ -1,21 +1,26 @@
 /**
- * `booli_search_sold` + `booli_get_sold` — the sold-prices (slutpriser)
- * surface, Booli's signature comparables dataset.
+ * `booli_search_sold` — the sold-prices (slutpriser) surface, Booli's
+ * signature comparables dataset.
  *
- * Search maps the shared geo/filter args plus sold-price + sold-date
- * filters onto Booli's `/sold` query; detail fetches one sold record by
- * Booli id. Both project to the slim {@link PropertySummary} by default.
+ * Resolves the area, maps the shared + sold-specific price/date filters
+ * onto Booli's `searchSold` input, and projects to the slim
+ * {@link PropertySummary} by default. (Single-property detail — active or
+ * sold — is `booli_get_listing`, since Booli resolves both by residence
+ * id.)
  */
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';
-import { formatProperty } from '../format.js';
+import { formatSold } from '../format.js';
 import { textResult } from '../mcp.js';
 import {
-  buildCommonQuery,
+  buildCommonFilters,
+  buildSearchInput,
   commonSearchShape,
+  resolveAreaId,
   type CommonSearchArgs,
 } from './_shared.js';
+import type { SearchFilter } from '../graphql.js';
 
 /** Sold-specific price + date filters. */
 const soldFilterShape = {
@@ -44,18 +49,22 @@ export interface SoldSearchArgs extends CommonSearchArgs {
   max_sold_date?: string;
 }
 
-/** Layer the sold filters onto a base query built from the shared args. */
-export function buildSoldQuery(args: SoldSearchArgs) {
-  const query = buildCommonQuery(args);
-  if (args.min_sold_price !== undefined) query.minSoldPrice = args.min_sold_price;
-  if (args.max_sold_price !== undefined) query.maxSoldPrice = args.max_sold_price;
+/** The sold-specific filters (price + date) as `{key, value}` pairs. */
+export function soldFilters(args: SoldSearchArgs): SearchFilter[] {
+  const filters: SearchFilter[] = [];
+  if (args.min_sold_price !== undefined)
+    filters.push({ key: 'minSoldPrice', value: String(args.min_sold_price) });
+  if (args.max_sold_price !== undefined)
+    filters.push({ key: 'maxSoldPrice', value: String(args.max_sold_price) });
   if (args.min_sold_sqm_price !== undefined)
-    query.minSoldSqmPrice = args.min_sold_sqm_price;
+    filters.push({ key: 'minSoldSqmPrice', value: String(args.min_sold_sqm_price) });
   if (args.max_sold_sqm_price !== undefined)
-    query.maxSoldSqmPrice = args.max_sold_sqm_price;
-  if (args.min_sold_date !== undefined) query.minSoldDate = args.min_sold_date;
-  if (args.max_sold_date !== undefined) query.maxSoldDate = args.max_sold_date;
-  return query;
+    filters.push({ key: 'maxSoldSqmPrice', value: String(args.max_sold_sqm_price) });
+  if (args.min_sold_date !== undefined)
+    filters.push({ key: 'minSoldDate', value: args.min_sold_date });
+  if (args.max_sold_date !== undefined)
+    filters.push({ key: 'maxSoldDate', value: args.max_sold_date });
+  return filters;
 }
 
 export const soldSearchShape = { ...commonSearchShape, ...soldFilterShape };
@@ -67,8 +76,9 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
       title: 'Search Booli sold listings (slutpriser)',
       description:
         'Search sold properties (slutpriser) on booli.se with the achieved final ' +
-        'price — the comparables for valuation. Scope by q / area_id / center+dim / ' +
-        'bbox and filter by sold price, sold date, rooms, area, object type. Read-only.',
+        'price and over/under-asking % — the comparables for valuation. Scope by ' +
+        '`area_id` or free-text `location`, filter by sold price, sold date, rooms, ' +
+        'area, object type. Paginated by `page`. Read-only.',
       annotations: {
         title: 'Search Booli sold listings',
         readOnlyHint: true,
@@ -77,49 +87,18 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
       inputSchema: soldSearchShape,
     },
     async (args: SoldSearchArgs) => {
-      const { total_count, properties } = await client.searchSold(buildSoldQuery(args));
+      const areaId = await resolveAreaId(client, args);
+      const filters = [...buildCommonFilters(args), ...soldFilters(args)];
+      const input = buildSearchInput(areaId, filters, args);
+      const { total_count, pages, sold } = await client.searchSold(input);
       const compact = args.compact ?? true;
       return textResult({
         total_count,
-        count: properties.length,
-        sold: compact ? properties.map(formatProperty) : properties,
-      });
-    },
-  );
-
-  server.registerTool(
-    'booli_get_sold',
-    {
-      title: 'Get a Booli sold listing',
-      description:
-        'Full detail for one sold listing by its Booli id, including final price ' +
-        'and sold date. Read-only.',
-      annotations: {
-        title: 'Get a Booli sold listing',
-        readOnlyHint: true,
-        idempotentHint: true,
-        openWorldHint: true,
-      },
-      inputSchema: {
-        booli_id: z.string().describe('The sold listing\'s Booli id (e.g. "181051").'),
-        compact: z
-          .boolean()
-          .optional()
-          .describe('Return a slim summary instead of the full raw record (default false).'),
-      },
-    },
-    async (args: { booli_id: string; compact?: boolean }) => {
-      const node = await client.getSold(args.booli_id);
-      if (node == null) {
-        return textResult({
-          found: false,
-          booli_id: args.booli_id,
-          hint: 'No sold listing with that id. It may still be for sale — try booli_get_listing.',
-        });
-      }
-      return textResult({
-        found: true,
-        sold: args.compact ? formatProperty(node) : node,
+        pages,
+        page: input.page,
+        count: sold.length,
+        area_id: areaId,
+        sold: compact ? sold.map(formatSold) : sold,
       });
     },
   );

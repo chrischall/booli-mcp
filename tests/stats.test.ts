@@ -1,14 +1,28 @@
 import { describe, it, expect } from 'vitest';
 import { computeMarketStats } from '../src/stats.js';
-import { formatProperty } from '../src/format.js';
+import { formatSold } from '../src/format.js';
 import type { PropertySummary } from '../src/format.js';
 
+/** A sold summary from partial raw fields. */
+function sold(fields: {
+  soldPrice?: number;
+  soldSqmPrice?: number;
+  diff?: number;
+}): PropertySummary {
+  return formatSold({
+    __typename: 'SoldProperty',
+    soldPrice: fields.soldPrice != null ? { raw: fields.soldPrice } : null,
+    soldSqmPrice: fields.soldSqmPrice != null ? { raw: fields.soldSqmPrice } : null,
+    soldPricePercentageDiff: fields.diff != null ? { raw: fields.diff } : null,
+  });
+}
+
 describe('computeMarketStats', () => {
-  it('aggregates median/average/min/max and over-asking % over sold rows', () => {
-    const rows: PropertySummary[] = [
-      formatProperty({ soldPrice: 1_000_000, listPrice: 900_000, livingArea: 50 }),
-      formatProperty({ soldPrice: 2_000_000, listPrice: 2_000_000, livingArea: 100 }),
-      formatProperty({ soldPrice: 3_000_000, listPrice: 3_300_000, livingArea: 100 }),
+  it('aggregates median/average/min/max and average over-asking %', () => {
+    const rows = [
+      sold({ soldPrice: 1_000_000, soldSqmPrice: 20_000, diff: 11 }),
+      sold({ soldPrice: 2_000_000, soldSqmPrice: 20_000, diff: 0 }),
+      sold({ soldPrice: 3_000_000, soldSqmPrice: 30_000, diff: -9 }),
     ];
     const stats = computeMarketStats(rows);
     expect(stats.sample_size).toBe(3);
@@ -16,24 +30,18 @@ describe('computeMarketStats', () => {
     expect(stats.average_sold_price).toBe(2_000_000);
     expect(stats.min_sold_price).toBe(1_000_000);
     expect(stats.max_sold_price).toBe(3_000_000);
-    // price/m²: 20000, 20000, 30000 → median 20000, avg ≈ 23333
     expect(stats.median_price_per_sqm).toBe(20_000);
     expect(stats.average_price_per_sqm).toBe(Math.round((20000 + 20000 + 30000) / 3));
-    // changes: +11.11%, 0%, -9.09% → mean ≈ 0.7 → rounded 0.7
     expect(stats.average_price_change_percent).toBeCloseTo(0.7, 1);
   });
 
   it('takes the mean of the two middle values for an even sample', () => {
-    const rows = [
-      formatProperty({ soldPrice: 1_000_000 }),
-      formatProperty({ soldPrice: 2_000_000 }),
-    ];
+    const rows = [sold({ soldPrice: 1_000_000 }), sold({ soldPrice: 2_000_000 })];
     expect(computeMarketStats(rows).median_sold_price).toBe(1_500_000);
   });
 
   it('returns null metrics for an empty sample', () => {
-    const stats = computeMarketStats([]);
-    expect(stats).toEqual({
+    expect(computeMarketStats([])).toEqual({
       sample_size: 0,
       median_sold_price: null,
       average_sold_price: null,
@@ -46,14 +54,11 @@ describe('computeMarketStats', () => {
   });
 
   it('skips rows missing the relevant field', () => {
-    const rows = [
-      formatProperty({ soldPrice: 1_000_000 }), // no livingArea → no per-sqm, no change
-      formatProperty({ listPrice: 500_000 }), // no soldPrice
-    ];
+    const rows = [sold({ soldPrice: 1_000_000 }), sold({ diff: 5 })];
     const stats = computeMarketStats(rows);
     expect(stats.sample_size).toBe(2);
     expect(stats.median_sold_price).toBe(1_000_000);
     expect(stats.median_price_per_sqm).toBeNull();
-    expect(stats.average_price_change_percent).toBeNull();
+    expect(stats.average_price_change_percent).toBe(5);
   });
 });

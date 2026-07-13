@@ -1,87 +1,94 @@
 import { describe, it, expect } from 'vitest';
 import { BooliClient } from '../src/client.js';
 import { fakeTransport, routedClient } from './helpers.js';
-import { AREA, LISTING, SOLD } from './fixtures.js';
+import { AREA, DETAIL, LISTING, PROJECT_NODE, SOLD } from './fixtures.js';
 
 describe('BooliClient', () => {
-  it('searchListings reads the `listings` envelope key + totalCount', async () => {
+  it('areaSuggestions returns the suggestions array', async () => {
+    const client = routedClient({
+      AreaSuggestions: { data: { areaSuggestionSearch: { suggestions: [AREA] } } },
+    });
+    const hits = await client.areaSuggestions('nacka');
+    expect(hits[0]!.id).toBe(76);
+  });
+
+  it('areaSuggestions tolerates a null suggestions field', async () => {
+    const client = routedClient({
+      AreaSuggestions: { data: { areaSuggestionSearch: { suggestions: null } } },
+    });
+    expect(await client.areaSuggestions('x')).toEqual([]);
+  });
+
+  it('searchForSale keeps only Listing nodes and reads totalCount/pages', async () => {
     const t = fakeTransport(() => ({
-      totalCount: 42,
-      count: 1,
-      listings: [LISTING],
+      data: { searchForSale: { totalCount: 427, pages: 33, result: [PROJECT_NODE, LISTING] } },
     }));
     const client = new BooliClient({ transport: t });
-    const res = await client.searchListings({ q: 'nacka' });
-    expect(res.total_count).toBe(42);
-    expect(res.properties).toHaveLength(1);
-    expect(t.calls[0]).toEqual({ path: 'listings', query: { q: 'nacka' } });
+    const res = await client.searchForSale({
+      areaId: '76', page: 1, ascending: false, excludeAncestors: true, facets: [], filters: [], sort: '',
+    });
+    expect(res.total_count).toBe(427);
+    expect(res.pages).toBe(33);
+    expect(res.listings).toHaveLength(1);
+    expect(res.listings[0]!.booliId).toBe('6151864');
+    expect(t.calls[0]!.variables.input).toMatchObject({ areaId: '76' });
   });
 
-  it('searchSold reads the `sold` envelope key', async () => {
-    const client = routedClient({ sold: { totalCount: 3, sold: [SOLD] } });
-    const res = await client.searchSold({ areaId: 76 });
+  it('searchForSale degrades to zero/empty on a null result', async () => {
+    const client = routedClient({ SearchForSale: { data: { searchForSale: null } } });
+    const res = await client.searchForSale({
+      areaId: '1', page: 1, ascending: false, excludeAncestors: true, facets: [], filters: [], sort: '',
+    });
+    expect(res).toEqual({ total_count: 0, pages: 0, listings: [] });
+  });
+
+  it('searchSold keeps only SoldProperty nodes', async () => {
+    const client = routedClient({
+      SearchSold: { data: { searchSold: { totalCount: 3, pages: 1, result: [SOLD] } } },
+    });
+    const res = await client.searchSold({
+      areaId: '76', page: 1, ascending: false, excludeAncestors: true, facets: [], filters: [], sort: '',
+    });
     expect(res.total_count).toBe(3);
-    expect(res.properties[0]!.booliId).toBe(181051);
+    expect(res.sold[0]!.soldPrice!.raw).toBe(16_000_000);
   });
 
-  it('falls back to array length when totalCount is absent', async () => {
-    const client = routedClient({ listings: { listings: [LISTING, LISTING] } });
-    const res = await client.searchListings({});
-    expect(res.total_count).toBe(2);
+  it('searchSold degrades to zero/empty on a null result', async () => {
+    const client = routedClient({ SearchSold: { data: { searchSold: null } } });
+    const res = await client.searchSold({
+      areaId: '1', page: 1, ascending: false, excludeAncestors: true, facets: [], filters: [], sort: '',
+    });
+    expect(res).toEqual({ total_count: 0, pages: 0, sold: [] });
   });
 
-  it('searchSold falls back to array length, then 0, when totalCount is absent', async () => {
-    const withRows = routedClient({ sold: { sold: [SOLD, SOLD] } });
-    expect((await withRows.searchSold({})).total_count).toBe(2);
-    const empty = routedClient({ sold: {} });
-    expect(await empty.searchSold({})).toEqual({ total_count: 0, properties: [] });
-  });
-
-  it('returns empty results for a null envelope array', async () => {
-    const client = routedClient({ listings: { listings: null } });
-    const res = await client.searchListings({});
-    expect(res).toEqual({ total_count: 0, properties: [] });
-  });
-
-  it('getListing pulls the first node from listings/:id', async () => {
-    const t = fakeTransport(() => ({ listings: [LISTING] }));
+  it('getProperty returns the detail node', async () => {
+    const t = fakeTransport(() => ({ data: { propertyByResidenceId: DETAIL } }));
     const client = new BooliClient({ transport: t });
-    const node = await client.getListing('1579812');
-    expect(node!.booliId).toBe(1579812);
-    expect(t.calls[0]!.path).toBe('listings/1579812');
+    const node = await client.getProperty('4370936');
+    expect(node!.residenceId).toBe('4370936');
+    expect(t.calls[0]!.variables).toEqual({ residenceId: '4370936' });
   });
 
-  it('getListing returns null when the id resolves to nothing', async () => {
-    const client = routedClient({ listings: { listings: [] } });
-    expect(await client.getListing('0')).toBeNull();
+  it('getProperty returns null when the id resolves to nothing', async () => {
+    const client = routedClient({ PropertyDetail: { data: { propertyByResidenceId: null } } });
+    expect(await client.getProperty('0')).toBeNull();
   });
 
-  it('getSold pulls the first node from sold/:id', async () => {
-    const client = routedClient({ sold: { sold: [SOLD] } });
-    const node = await client.getSold('181051');
-    expect(node!.soldPrice).toBe(1_680_000);
+  it('throws a redacted McpToolError on a GraphQL errors array', async () => {
+    const client = routedClient({ SearchForSale: { errors: [{ message: 'boom' }] } });
+    await expect(
+      client.searchForSale({ areaId: '1', page: 1, ascending: false, excludeAncestors: true, facets: [], filters: [], sort: '' }),
+    ).rejects.toThrow(/Booli GraphQL error: boom/);
   });
 
-  it('getSold returns null when absent', async () => {
-    const client = routedClient({ sold: {} });
-    expect(await client.getSold('0')).toBeNull();
+  it('throws on a null data envelope', async () => {
+    const client = routedClient({ AreaSuggestions: { data: null } });
+    await expect(client.areaSuggestions('x')).rejects.toThrow(/empty response/);
   });
 
-  it('searchAreas reads the `areas` envelope key', async () => {
-    const client = routedClient({ areas: { areas: [AREA] } });
-    const areas = await client.searchAreas({ q: 'nacka' });
-    expect(areas[0]!.booliId).toBe(76);
-  });
-
-  it('searchAreas tolerates a missing areas array', async () => {
-    const client = routedClient({ areas: {} });
-    expect(await client.searchAreas({})).toEqual([]);
-  });
-
-  it('healthcheck round-trips /areas and reports hit count', async () => {
-    const t = fakeTransport(() => ({ areas: [AREA] }));
+  it('healthcheck round-trips area suggestions and reports hit count', async () => {
+    const t = fakeTransport(() => ({ data: { areaSuggestionSearch: { suggestions: [AREA] } } }));
     const client = new BooliClient({ transport: t });
     expect(await client.healthcheck()).toEqual({ ok: true, hits: 1 });
-    expect(t.calls[0]).toEqual({ path: 'areas', query: { q: 'Stockholm', limit: 1 } });
   });
 });

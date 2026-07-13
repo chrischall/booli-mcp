@@ -25,8 +25,9 @@ function listToolsViaStdio(entry: string, cwd: string): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const child = spawn('node', [entry], {
       cwd,
-      // No creds: the server must still boot and serve tools/list (deferred-config).
-      env: { ...process.env, BOOLI_CALLER_ID: '', BOOLI_API_KEY: '' },
+      // No bridge/tab: the server must still boot and serve tools/list; the
+      // browser bridge is only built lazily on the first walled request.
+      env: { ...process.env, BOOLI_TRANSPORT: 'auto' },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
     let out = '';
@@ -94,7 +95,7 @@ describe('server boot (built artifacts)', () => {
       expect(tools).toContain('booli_search_listings');
       expect(tools).toContain('booli_search_sold');
       expect(tools).toContain('booli_search_areas');
-      expect(tools).toContain('booli_healthcheck');
+      expect(tools).toContain('booli_get_listing');
     } finally {
       rmSync(dir, { recursive: true, force: true });
     }

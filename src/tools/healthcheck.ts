@@ -1,11 +1,11 @@
 /**
- * `booli_healthcheck` — one-call end-to-end probe of the Booli API.
+ * `booli_healthcheck` — one-call end-to-end probe of the Booli data path.
  *
- * Runs a tiny /areas round-trip and reports `ok`, the elapsed ms, and a
- * plain-English hint. Because it exercises the signed request path, a
- * failure here isolates cleanly to network reachability, missing
- * credentials, or a bad caller id / key — call it when a real tool errors
- * and you want to know whether the endpoint + credentials are healthy.
+ * Runs a tiny area-suggestion round-trip and reports `ok`, the elapsed ms,
+ * and a plain-English hint. Because booli.se is Cloudflare-walled, a
+ * failure usually means the request could not ride a real browser session
+ * — call it when a real tool errors and you want to know whether the
+ * fetchproxy bridge is reachable and a www.booli.se tab is available.
  */
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { messageOf } from '@chrischall/mcp-utils';
@@ -16,12 +16,13 @@ export function registerHealthcheckTools(server: McpServer, client: BooliClient)
   server.registerTool(
     'booli_healthcheck',
     {
-      title: 'Verify the Booli API',
+      title: 'Verify the Booli data path',
       description:
-        'Round-trips a tiny query to api.booli.se and reports whether the endpoint ' +
-        'is reachable, the credentials work, the elapsed time, and a hint. Read-only.',
+        'Round-trips a tiny query to booli.se and reports whether the endpoint is ' +
+        'reachable (directly or via the browser bridge), the elapsed time, and a ' +
+        'hint. Read-only.',
       annotations: {
-        title: 'Verify the Booli API',
+        title: 'Verify the Booli data path',
         readOnlyHint: true,
         idempotentHint: true,
         openWorldHint: true,
@@ -36,14 +37,18 @@ export function registerHealthcheckTools(server: McpServer, client: BooliClient)
           ok: true,
           elapsed_ms: Date.now() - start,
           hits: result.hits,
-          hint: 'Booli API is reachable and the credentials are valid.',
+          hint: 'Booli is reachable and responding.',
         });
       } catch (err) {
+        const error = messageOf(err);
+        const walled = /Cloudflare|non-JSON|browser bridge|bridge:/i.test(error);
         return textResult({
           ok: false,
           elapsed_ms: Date.now() - start,
-          error: messageOf(err),
-          hint: 'Booli API did not respond as expected. Check network reachability and that BOOLI_CALLER_ID / BOOLI_API_KEY are set and valid.',
+          error,
+          hint: walled
+            ? 'Booli is serving a Cloudflare bot challenge. Set BOOLI_TRANSPORT=fetchproxy (or leave the default "auto"), keep a www.booli.se tab open (no login needed), and approve the Transporter pairing prompt if one appears.'
+            : 'Booli did not respond. Check network reachability; the endpoint or a queried field may have changed.',
         });
       }
     },

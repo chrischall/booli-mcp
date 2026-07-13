@@ -1,99 +1,139 @@
-# Booli API (classic partner REST API) — pinned reference
+# Booli data access — reference
 
-Source: https://www.booli.se/p/api/referens (Wayback 2024-07-25), canonical wrappers
-(rinti/booli-api, peterstark72/booli, filipsalo/booliapi). Verified server-reachable
-(no Cloudflare wall on `api.booli.se`; the `www.booli.se` consumer site IS Cloudflare-walled).
+Two surfaces exist. booli-mcp uses **(1) the consumer GraphQL API via the browser
+bridge**. The classic signed REST API (2) is documented at the bottom as historical
+context — its credentials are no longer obtainable, so it is not usable.
 
-## Base URL
-`https://api.booli.se`
+---
 
-## Auth (HMAC query signing — NOT a bearer header)
-Every request carries 4 query params:
+## (1) Consumer GraphQL API — `www.booli.se/graphql`  (the one we use)
 
-    callerId = <your caller id>
-    time     = <unix timestamp in MILLISECONDS>   // rinti uses +new Date()
-    unique   = <random 16-char string>
-    hash     = sha1( callerId + time + apiKey + unique )   // hex digest
+`POST https://www.booli.se/graphql`, `content-type: application/json`,
+body `{ "query": "...", "variables": {...} }`. Standard GraphQL `{ data, errors }`
+envelope.
 
-Missing any → `403 {"...":"FAILURE_MISSING_PARAM - Request must contain callerId, unique, time and hash."}`
+**Access:** the whole `www.booli.se` zone is behind a Cloudflare managed challenge
+(`cf-mitigated: challenge`) that 403s every non-browser client (Node/curl), and
+Cloudflare fingerprints the client itself, so no header/cookie replay durably clears
+it. The identical query returns 200 from a `fetch` **inside a real browser tab**. So
+requests ride the user's own signed-in (Cloudflare-cleared) `www.booli.se` tab via
+the fetchproxy bridge (`@fetchproxy/server` + Transporter extension). No Booli login
+needed — just a cleared Cloudflare session (any normal page view). Introspection is
+disabled (500). Verified live 2026-07-13.
 
-Credentials (`callerId` + `apiKey`) are obtained by the human from Booli's API page
-(accept terms → key emailed). Agent never sets them. Env: `BOOLI_CALLER_ID`, `BOOLI_API_KEY`.
+### Queries
 
-## Endpoints
+**Area lookup (name → areaId):**
+```graphql
+{ areaSuggestionSearch(search: "nacka") { suggestions { id displayName } } }
+# → { suggestions: [ { id: 76, displayName: "Nacka kommun" }, … ] }
+```
+`id` is the `areaId` used by the search queries.
 
-### GET /listings  — properties for sale
-Query params (all optional; combine freely):
-- `q`               free-text area search string (e.g. `nacka`)
-- `center`          coordinate `lat,lng` (e.g. `59.34674,18.0603`)
-- `dim`             rectangle dimensions in metres, with `center` (e.g. `400,500`)
-- `bbox`            `lat_lo,lng_lo,lat_hi,lng_hi` (SW then NE)
-- `areaId`          area id(s), comma-separated for multiple (e.g. `76,16`)
-- `minListPrice` / `maxListPrice`
-- `minListSqmPrice` / `maxListSqmPrice`
+**For-sale search:**
+```graphql
+query($input: SearchInput) {
+  searchForSale(input: $input) {
+    totalCount
+    pages
+    result {
+      __typename
+      ... on Listing {
+        booliId objectType tenureForm streetAddress descriptiveAreaName
+        latitude longitude published daysActive isNewConstruction url
+        rooms { raw } livingArea { raw } rent { raw } floor { raw }
+        listPrice { raw formatted } listSqmPrice { raw }
+        location { region { municipalityName countyName } namedAreas }
+      }
+      # results can also be `... on Project` (new-construction developments)
+    }
+  }
+}
+```
+
+**Sold search (slutpriser):** `searchSold(input: $input)`, same envelope; result is
+`... on SoldProperty`:
+```graphql
+booliId objectType tenureForm streetAddress descriptiveAreaName latitude longitude
+soldDate daysActive url
+soldPrice { raw formatted } soldSqmPrice { raw } listPrice { raw }
+soldPricePercentageDiff { raw }   # over/under asking %, e.g. -20
+rooms { raw } livingArea { raw } rent { raw } floor { raw }
+location { region { municipalityName countyName } namedAreas }
+```
+
+**Detail (by residence id):**
+```graphql
+{ propertyByResidenceId(residenceId: "4370936") {
+    __typename booliId residenceId objectType tenureForm streetAddress
+    descriptiveAreaName latitude longitude constructionYear buildingFloors url
+    rooms { raw } livingArea { raw } additionalArea { raw } plotArea { raw }
+    rent { raw } operatingCost { raw } floor { raw }
+    location { region { municipalityName countyName } namedAreas }
+    ... on Listing {
+      published isNewConstruction biddingOpen upcomingSale listingUrl
+      listPrice { raw formatted } listSqmPrice { raw } listPricePercentageDiff { raw }
+      agency { name url } estimate { price { raw } }
+    }
+    ... on SoldProperty {
+      soldPrice { raw formatted } soldSqmPrice { raw } soldDate
+      soldPricePercentageDiff { raw } listPrice { raw }
+    }
+} }
+```
+`propertyByResidenceId` returns the `Property` interface; Listing/SoldProperty-only
+fields need inline fragments. `residenceId` is the number in the `/bostad/<id>` URL
+(a result's `url` field) — **not** `booliId` (booliId is a separate internal id).
+
+### SearchInput
+```
+{ areaId: String,           # a single area id (from areaSuggestionSearch)
+  page: Int,                 # 1-based
+  ascending: Boolean,        # sort direction
+  excludeAncestors: Boolean, # true (the default the site sends)
+  facets: [String],          # e.g. ["upcomingSale"]; [] is fine
+  filters: [{ key, value }], # see below — key/value both strings
+  sort: String }             # "" = default; else a sort key (below)
+```
+
+### Filters (`filters: [{key, value}]`)
+Range filters use `min*`/`max*` keys; the vocabulary matches the classic REST params:
+- `objectType` (multi): values `Lägenhet`, `Villa`, `Kedjehus-Parhus-Radhus`,
+  `Fritidshus`, `Gård`, `Tomt/Mark`
 - `minRooms` / `maxRooms`
-- `maxRent`
-- `minLivingArea` / `maxLivingArea`
-- `minPlotArea` / `maxPlotArea`
-- `objectType`      one or more (comma-separated) of:
-                    `villa, lägenhet, gård, tomt-mark, fritidshus, parhus, radhus, kedjehus`
+- `minLivingArea` / `maxLivingArea`  (m²)
+- `minPlotArea` / `maxPlotArea`  (m²)
+- `minListPrice` / `maxListPrice`  (SEK)  — sold search: `minSoldPrice`/`maxSoldPrice`
+- `minListSqmPrice` / `maxListSqmPrice`  — sold: `minSoldSqmPrice`/`maxSoldSqmPrice`
 - `minConstructionYear` / `maxConstructionYear`
-- `minPublished` / `maxPublished`   date `YYYYMMDD`
-- `isNewConstruction`   `1` = only new production, `0` = exclude
-- `includeUnset`    default true; whether filters include listings missing the attribute
-- `limit`           number of results
-- `offset`          offset
+- `minSoldDate` / `maxSoldDate`  (YYYYMMDD; sold search)
+- `isNewConstruction` (`1`/`0`)
+- `amenities` (`hasBalconyOrPatio`, `hasFireplace`, `buildingHasElevator`)
+- `floor`, `daysActive`, `extendAreas` (radius km)
 
-Response: `{ totalCount, count, listings: [Property...], limit, offSet, searchParams }`
+### Sort keys
+`published` (default when `sort:""`), `listPrice`, `rooms`, `livingArea`, `rent`,
+`listSqmPrice`, `plotArea`, `postAddress`, plus `soldDate`/`soldPrice` on sold.
+Direction via `ascending`.
 
-### GET /listings/:id  — single for-sale listing
-Response: `{ listings: [Property] }`
+### FormattedValue
+Numeric fields are `FormattedValue { raw: Int, formatted: String, unit, value }` —
+select `{ raw }` for the number, `{ formatted }` for the display string.
 
-### GET /sold  — sold properties
-Same geo/area/room/area/objectType/year/published/pagination params as /listings, plus:
-- `minSoldPrice` / `maxSoldPrice`
-- `minSoldSqmPrice` / `maxSoldSqmPrice`
-- `minSoldDate` / `maxSoldDate`   date `YYYYMMDD`
-(uses SoldPrice not ListPrice for the price filters)
+### Notes
+- `result` can contain `Project` (new-construction) alongside `Listing`; filter by
+  `__typename` and surface Listings, noting any Projects.
+- The Apollo/SSR store also embeds these under `__NEXT_DATA__.props.pageProps
+  .__APOLLO_STATE__` (normalized cache) — the GraphQL POST is cleaner than resolving
+  the normalized `__ref` graph, so we query directly.
 
-Response: `{ totalCount, count, sold: [Property...], limit, offSet, searchParams }`
+---
 
-### GET /sold/:id  — single sold listing
-Response: `{ sold: [Property] }`
+## (2) Classic signed REST API — `api.booli.se`  (historical; NOT usable)
 
-### GET /areas  — area / place lookup (resolve a name → areaId)
-Query params:
-- `q`             search string (e.g. `nacka`)
-- `lat` / `lng`   coordinate lookup (used together)
-- `listings`      `1` = only areas with listings for sale
-- `transactions`  `1` = only areas with sold listings
-- `limit`         number of results
-
-Response: `{ totalCount, count, areas: [Area...], searchParams, limit }`
-Area: `{ booliId, name, types:[...], parentBooliId, parentName, parentTypes:[...], fullName }`
-  types example values: `Kommun`, `Län`, `Street`, `undefined`
-
-## Property (listing / sold) object shape (flat)
-    location: {
-      address:   { streetAddress, city? },
-      position:  { latitude, longitude },
-      namedAreas: [string],
-      region:    { municipalityName, countyName },
-      distance:  { ocean? }            // metres to water, sold only sometimes
-    },
-    listPrice, firstPrice?, soldPrice?, soldDate?, listPriceChangeDate?,
-    rent?, floor?, livingArea, plotArea?, additionalArea?, rooms,
-    published, constructionYear?, objectType, tenureForm?,
-    booliId, url,
-    source: { name, id?, type, url },
-    isNewConstruction?, hasPatio?, hasBalcony?, hasSolarPanels?, hasFirePlace?, biddingOpen?
-
-Prices are plain integers (SEK). rooms/livingArea/plotArea are floats.
-Dates: `published` = `YYYY-MM-DD HH:MM:SS`; `soldDate` = `YYYY-MM-DD`.
-
-## Notes for the MCP
-- Read-only API — no write endpoints. No confirm-gated tools needed.
-- `q`/`areaId`/`center`+`dim`/`bbox` are alternative ways to scope a search; `/areas`
-  resolves a human place name → `areaId` for precise scoping.
-- Response key is `listings` for /listings, `sold` for /sold — different envelope keys.
-- Response uses `offSet` (capital S) in the envelope though the request param is `offset`.
+`GET https://api.booli.se/{listings,sold,areas}` signed per request with
+`callerId`, `time` (unix ms), `unique`, `hash = sha1(callerId+time+apiKey+unique)`.
+Server-reachable (no Cloudflare) but requires a `callerId` + `apiKey` that Booli no
+longer issues to new users — so a consumer cannot authenticate. Kept here only to
+explain why booli-mcp uses the GraphQL/browser-bridge route instead. (Flat response
+fields: `listPrice`, `soldPrice`, `livingArea`, `rooms`, `location{...}`, etc.)

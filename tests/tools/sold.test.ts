@@ -12,9 +12,11 @@ async function mount(handler: Parameters<typeof fakeTransport>[0]) {
   return { h, transport };
 }
 
+const route = () => ({ data: { searchSold: { totalCount: 2, pages: 1, result: [SOLD] } } });
+
 describe('booli_search_sold', () => {
-  it('maps sold-specific filters and returns compact rows by default', async () => {
-    const { h, transport } = await mount(() => ({ totalCount: 2, sold: [SOLD] }));
+  it('maps sold-specific price + date filters and returns compact rows', async () => {
+    const { h, transport } = await mount(route);
     const res = await h.callTool('booli_search_sold', {
       area_id: '76',
       min_sold_price: 1_000_000,
@@ -26,60 +28,43 @@ describe('booli_search_sold', () => {
     });
     const body = parseToolResult<{ total_count: number; sold: { sold_price: number }[] }>(res);
     expect(body.total_count).toBe(2);
-    expect(body.sold[0]!.sold_price).toBe(1_680_000);
-    expect(transport.calls[0]!.query).toMatchObject({
-      areaId: '76',
-      minSoldPrice: 1_000_000,
-      maxSoldPrice: 4_000_000,
-      minSoldSqmPrice: 10_000,
-      maxSoldSqmPrice: 70_000,
-      minSoldDate: '20240101',
-      maxSoldDate: '20241231',
-    });
-    await h.close();
+    expect(body.sold[0]!.sold_price).toBe(16_000_000);
+
+    const input = transport.calls[0]!.variables.input as {
+      filters: { key: string; value: string }[];
+    };
+    expect(input.filters).toEqual(
+      expect.arrayContaining([
+        { key: 'minSoldPrice', value: '1000000' },
+        { key: 'maxSoldPrice', value: '4000000' },
+        { key: 'minSoldSqmPrice', value: '10000' },
+        { key: 'maxSoldSqmPrice', value: '70000' },
+        { key: 'minSoldDate', value: '20240101' },
+        { key: 'maxSoldDate', value: '20241231' },
+      ]),
+    );
   });
 
   it('rejects a malformed sold date', async () => {
-    const { h } = await mount(() => ({ sold: [] }));
-    const res = await h.callTool('booli_search_sold', { min_sold_date: '2024-01-01' });
+    const { h } = await mount(route);
+    const res = await h.callTool('booli_search_sold', { area_id: '1', min_sold_date: '2024-01-01' });
     expect(res.isError).toBe(true);
     await h.close();
   });
 
   it('returns full raw records when compact is false', async () => {
-    const { h } = await mount(() => ({ sold: [SOLD] }));
-    const res = await h.callTool('booli_search_sold', { q: 'x', compact: false });
+    const { h } = await mount(route);
+    const res = await h.callTool('booli_search_sold', { area_id: '1', compact: false });
     const body = parseToolResult<{ sold: { soldDate: string }[] }>(res);
-    expect(body.sold[0]!.soldDate).toBe('2012-11-06');
-    await h.close();
-  });
-});
-
-describe('booli_get_sold', () => {
-  it('returns the compact sold record when found', async () => {
-    const { h, transport } = await mount(() => ({ sold: [SOLD] }));
-    const res = await h.callTool('booli_get_sold', { booli_id: '181051', compact: true });
-    const body = parseToolResult<{ found: boolean; sold: { sold_price: number } }>(res);
-    expect(body.found).toBe(true);
-    expect(body.sold.sold_price).toBe(1_680_000);
-    expect(transport.calls[0]!.path).toBe('sold/181051');
+    expect(body.sold[0]!.soldDate).toBe('2026-07-13');
     await h.close();
   });
 
-  it('returns the raw node by default', async () => {
-    const { h } = await mount(() => ({ sold: [SOLD] }));
-    const res = await h.callTool('booli_get_sold', { booli_id: '181051' });
-    const body = parseToolResult<{ sold: { booliId: number } }>(res);
-    expect(body.sold.booliId).toBe(181051);
-    await h.close();
-  });
-
-  it('reports not-found with a hint to try the for-sale tool', async () => {
-    const { h } = await mount(() => ({ sold: [] }));
-    const res = await h.callTool('booli_get_sold', { booli_id: '0' });
-    const body = parseToolResult<{ found: boolean; hint: string }>(res);
-    expect(body.found).toBe(false);
-    expect(body.hint).toMatch(/booli_get_listing/);
+  it('maps is_new_construction false to the "0" filter', async () => {
+    const { h, transport } = await mount(route);
+    await h.callTool('booli_search_sold', { area_id: '1', is_new_construction: false });
+    const input = transport.calls[0]!.variables.input as { filters: { key: string; value: string }[] };
+    expect(input.filters).toContainEqual({ key: 'isNewConstruction', value: '0' });
     await h.close();
   });
 });

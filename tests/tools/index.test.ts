@@ -9,7 +9,6 @@ describe('registerBooliTools', () => {
     expect(names).toEqual(
       [
         'booli_get_listing',
-        'booli_get_sold',
         'booli_healthcheck',
         'booli_market_stats',
         'booli_search_areas',
