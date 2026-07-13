@@ -25,38 +25,18 @@
     "bostad",
     "slutpriser"
   ],
-  "user_config": {
-    "caller_id": {
-      "type": "string",
-      "title": "Booli caller id",
-      "description": "Your Booli API caller id (request one at booli.se/p/api). Stored as BOOLI_CALLER_ID.",
-      "required": false,
-      "sensitive": true
-    },
-    "api_key": {
-      "type": "string",
-      "title": "Booli API key",
-      "description": "Your Booli API key/secret (emailed after accepting Booli's API terms). Stored as BOOLI_API_KEY.",
-      "required": false,
-      "sensitive": true
-    }
-  },
   "server": {
     "type": "node",
     "entry_point": "dist/bundle.js",
     "mcp_config": {
       "command": "node",
-      "args": ["${__dirname}/dist/bundle.js"],
-      "env": {
-        "BOOLI_CALLER_ID": "${user_config.caller_id}",
-        "BOOLI_API_KEY": "${user_config.api_key}"
-      }
+      "args": ["${__dirname}/dist/bundle.js"]
     }
   },
   "tools": [
     {
       "name": "booli_search_areas",
-      "description": "Resolve a place name or coordinate to Booli area ids"
+      "description": "Resolve a place name to Booli area ids"
     },
     {
       "name": "booli_search_listings",
@@ -64,15 +44,11 @@
     },
     {
       "name": "booli_get_listing",
-      "description": "Full detail for one active for-sale listing by Booli id"
+      "description": "Full detail for one property (active or sold) by residence id"
     },
     {
       "name": "booli_search_sold",
       "description": "Search sold listings (slutpriser) with final prices"
-    },
-    {
-      "name": "booli_get_sold",
-      "description": "Full detail for one sold listing by Booli id"
     },
     {
       "name": "booli_market_stats",
@@ -80,7 +56,7 @@
     },
     {
       "name": "booli_healthcheck",
-      "description": "Verify the Booli API is reachable and credentials work"
+      "description": "Verify the Booli data path (direct or via the browser bridge)"
     }
   ],
   "compatibility": {

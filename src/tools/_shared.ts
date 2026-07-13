@@ -1,53 +1,52 @@
 /**
  * Shared search-input plumbing for the listings + sold tools.
  *
- * Booli scopes a search by ONE of several geo methods (a free-text `q`, an
- * `area_id`, a `center`+`dim` rectangle, or a `bbox`) plus optional
- * property filters. This module centralises the zod raw-shape and the
- * arg→Booli-query mapping so the listings and sold tools stay consistent;
- * each layers its own price/date filters on top.
+ * Booli's `searchForSale`/`searchSold` take a single `areaId` plus a
+ * `filters: [{key, value}]` array (see docs/BOOLI-API.md). This module
+ * centralises the zod raw-shape, the free-text → areaId resolution, and
+ * the arg → filter mapping so the listings and sold tools stay
+ * consistent; each layers its own price/date filters on top.
  */
 import { z } from 'zod';
-import type { BooliQuery } from '../transport.js';
+import { McpToolError } from '@chrischall/mcp-utils';
+import type { BooliClient } from '../client.js';
+import type { SearchFilter, SearchRequestInput } from '../graphql.js';
 
-/** Booli property types accepted by `objectType` (comma-separated). */
+/** Booli property types accepted by the `objectType` filter. */
 export const OBJECT_TYPES = [
-  'villa',
-  'lägenhet',
-  'gård',
-  'tomt-mark',
-  'fritidshus',
-  'parhus',
-  'radhus',
-  'kedjehus',
+  'Lägenhet',
+  'Villa',
+  'Kedjehus-Parhus-Radhus',
+  'Fritidshus',
+  'Gård',
+  'Tomt/Mark',
+] as const;
+
+/** Sort keys accepted by both searches (direction via `ascending`). */
+export const SORT_KEYS = [
+  'published',
+  'listPrice',
+  'listSqmPrice',
+  'rooms',
+  'livingArea',
+  'rent',
+  'plotArea',
 ] as const;
 
 /** The geo + shared-filter raw-shape reused by both search tools. */
 export const commonSearchShape = {
-  q: z
-    .string()
-    .optional()
-    .describe(
-      'Free-text area search (e.g. "Nacka", "Södermalm"). One of q / area_id / center / bbox scopes the search.',
-    ),
   area_id: z
     .string()
     .optional()
     .describe(
-      'Booli area id(s) from booli_search_areas, comma-separated for several (e.g. "76,16").',
+      'Booli area id from booli_search_areas. Provide this OR `location`.',
     ),
-  center: z
+  location: z
     .string()
     .optional()
-    .describe('Coordinate "lat,lng" (e.g. "59.34674,18.0603"); use with `dim`.'),
-  dim: z
-    .string()
-    .optional()
-    .describe('Rectangle size in metres "w,h" (e.g. "400,500"), used with `center`.'),
-  bbox: z
-    .string()
-    .optional()
-    .describe('Bounding box "lat_lo,lng_lo,lat_hi,lng_hi" (SW then NE corner).'),
+    .describe(
+      'Free-text place name (e.g. "Nacka", "Södermalm") resolved to its top Booli area. Ignored when `area_id` is set.',
+    ),
   object_type: z
     .string()
     .optional()
@@ -60,15 +59,15 @@ export const commonSearchShape = {
   max_living_area: z.number().positive().optional().describe('m²'),
   min_plot_area: z.number().positive().optional().describe('m²'),
   max_plot_area: z.number().positive().optional().describe('m²'),
-  max_rent: z.number().nonnegative().optional().describe('SEK/month'),
   min_construction_year: z.number().int().optional(),
   max_construction_year: z.number().int().optional(),
   is_new_construction: z
     .boolean()
     .optional()
     .describe('true = only new production; false = exclude new production.'),
-  limit: z.number().int().min(1).max(100).optional().describe('Default 30, max 100.'),
-  offset: z.number().int().nonnegative().optional().describe('Pagination offset.'),
+  sort: z.enum(SORT_KEYS).optional().describe('Sort key (default: newest published).'),
+  ascending: z.boolean().optional().describe('Sort ascending (default false).'),
+  page: z.number().int().min(1).optional().describe('1-based page (default 1).'),
   compact: z
     .boolean()
     .optional()
@@ -77,11 +76,8 @@ export const commonSearchShape = {
 
 /** Parsed args for the shared search shape. */
 export interface CommonSearchArgs {
-  q?: string;
   area_id?: string;
-  center?: string;
-  dim?: string;
-  bbox?: string;
+  location?: string;
   object_type?: string;
   min_rooms?: number;
   max_rooms?: number;
@@ -89,45 +85,76 @@ export interface CommonSearchArgs {
   max_living_area?: number;
   min_plot_area?: number;
   max_plot_area?: number;
-  max_rent?: number;
   min_construction_year?: number;
   max_construction_year?: number;
   is_new_construction?: boolean;
-  limit?: number;
-  offset?: number;
+  sort?: string;
+  ascending?: boolean;
+  page?: number;
   compact?: boolean;
 }
 
-/** Default page size when the caller omits `limit`. */
-export const DEFAULT_LIMIT = 30;
+/** Push `{key, value}` when the value is defined. */
+function addFilter(filters: SearchFilter[], key: string, value: unknown): void {
+  if (value !== undefined && value !== null) {
+    filters.push({ key, value: String(value) });
+  }
+}
+
+/** The filters common to both searches (everything except price/date). */
+export function buildCommonFilters(args: CommonSearchArgs): SearchFilter[] {
+  const filters: SearchFilter[] = [];
+  addFilter(filters, 'objectType', args.object_type);
+  addFilter(filters, 'minRooms', args.min_rooms);
+  addFilter(filters, 'maxRooms', args.max_rooms);
+  addFilter(filters, 'minLivingArea', args.min_living_area);
+  addFilter(filters, 'maxLivingArea', args.max_living_area);
+  addFilter(filters, 'minPlotArea', args.min_plot_area);
+  addFilter(filters, 'maxPlotArea', args.max_plot_area);
+  addFilter(filters, 'minConstructionYear', args.min_construction_year);
+  addFilter(filters, 'maxConstructionYear', args.max_construction_year);
+  if (args.is_new_construction !== undefined) {
+    addFilter(filters, 'isNewConstruction', args.is_new_construction ? 1 : 0);
+  }
+  return filters;
+}
 
 /**
- * Map the shared search args onto Booli query params (Booli's own
- * camelCase names). Only defined values are emitted, so the query stays
- * minimal.
+ * Resolve the caller's area into a single `areaId`: an explicit `area_id`
+ * wins, else the top hit for a free-text `location`. Throws a clean
+ * argument error when neither is given or a name resolves to nothing.
  */
-export function buildCommonQuery(args: CommonSearchArgs): BooliQuery {
-  const q: BooliQuery = {};
-  if (args.q !== undefined) q.q = args.q;
-  if (args.area_id !== undefined) q.areaId = args.area_id;
-  if (args.center !== undefined) q.center = args.center;
-  if (args.dim !== undefined) q.dim = args.dim;
-  if (args.bbox !== undefined) q.bbox = args.bbox;
-  if (args.object_type !== undefined) q.objectType = args.object_type;
-  if (args.min_rooms !== undefined) q.minRooms = args.min_rooms;
-  if (args.max_rooms !== undefined) q.maxRooms = args.max_rooms;
-  if (args.min_living_area !== undefined) q.minLivingArea = args.min_living_area;
-  if (args.max_living_area !== undefined) q.maxLivingArea = args.max_living_area;
-  if (args.min_plot_area !== undefined) q.minPlotArea = args.min_plot_area;
-  if (args.max_plot_area !== undefined) q.maxPlotArea = args.max_plot_area;
-  if (args.max_rent !== undefined) q.maxRent = args.max_rent;
-  if (args.min_construction_year !== undefined)
-    q.minConstructionYear = args.min_construction_year;
-  if (args.max_construction_year !== undefined)
-    q.maxConstructionYear = args.max_construction_year;
-  if (args.is_new_construction !== undefined)
-    q.isNewConstruction = args.is_new_construction ? 1 : 0;
-  q.limit = args.limit ?? DEFAULT_LIMIT;
-  if (args.offset !== undefined) q.offset = args.offset;
-  return q;
+export async function resolveAreaId(
+  client: BooliClient,
+  args: CommonSearchArgs,
+): Promise<string> {
+  if (args.area_id) return args.area_id;
+  if (args.location) {
+    const hits = await client.areaSuggestions(args.location);
+    const top = hits[0];
+    if (top?.id != null) return String(top.id);
+    throw new McpToolError(
+      `No Booli area matched "${args.location}". Try booli_search_areas to find an area id.`,
+    );
+  }
+  throw new McpToolError(
+    'Provide an area: either `area_id` (from booli_search_areas) or a free-text `location`.',
+  );
+}
+
+/** Assemble the full {@link SearchRequestInput} from resolved area + filters. */
+export function buildSearchInput(
+  areaId: string,
+  filters: SearchFilter[],
+  args: CommonSearchArgs,
+): SearchRequestInput {
+  return {
+    areaId,
+    page: args.page ?? 1,
+    ascending: args.ascending ?? false,
+    excludeAncestors: true,
+    facets: [],
+    filters,
+    sort: args.sort ?? '',
+  };
 }

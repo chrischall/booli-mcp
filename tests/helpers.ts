@@ -2,8 +2,9 @@
 //
 // Re-exports the fleet's in-memory MCP harness (createTestHarness /
 // parseToolResult / versionSyncTest) and adds a FakeTransport: a
-// BooliTransport whose `get` is driven by a handler keyed off the request
-// path. Every test drives tools + client through this fake — zero network.
+// BooliTransport whose `graphql` is driven by a handler keyed off the
+// operation name in the query. Every test drives tools + client through
+// this fake — zero network.
 export {
   createTestHarness,
   parseToolResult,
@@ -11,50 +12,54 @@ export {
 } from '@chrischall/mcp-utils/test';
 
 import { BooliClient } from '../src/client.js';
-import type { BooliQuery, BooliTransport } from '../src/transport.js';
+import type { GraphQLResponse, BooliTransport } from '../src/transport.js';
 
-/** Handler mapping a request (path, query) → the JSON body to return. */
-export type GetHandler = (path: string, query: BooliQuery) => unknown;
+/** Handler mapping a GraphQL (query, variables) → a response envelope. */
+export type GraphqlHandler = (
+  query: string,
+  variables: Record<string, unknown>,
+) => GraphQLResponse<unknown>;
 
 /** Records every call the code under test made, for assertions. */
 export interface FakeTransport extends BooliTransport {
-  calls: { path: string; query: BooliQuery }[];
+  calls: { query: string; variables: Record<string, unknown> }[];
 }
 
 /** Build a fake transport from a single handler. */
-export function fakeTransport(handler: GetHandler): FakeTransport {
+export function fakeTransport(handler: GraphqlHandler): FakeTransport {
   const calls: FakeTransport['calls'] = [];
   return {
     calls,
-    async get<T>(path: string, query: BooliQuery = {}) {
-      calls.push({ path, query });
-      return handler(path, query) as T;
+    async graphql<T>(query: string, variables: Record<string, unknown>) {
+      calls.push({ query, variables });
+      return handler(query, variables) as GraphQLResponse<T>;
     },
   };
 }
 
 /**
- * Route responses by the leading path segment (`listings`, `sold`,
- * `areas`). Pass a map from segment → body (or a function of the query).
- * Unmapped paths throw.
+ * Route responses by operation name (the `query XxxName(` after the
+ * leading `query` keyword). Pass a map from operation name → envelope (or
+ * a function of the variables). Unmapped operations return an error.
  */
 export function routedTransport(routes: {
-  [segment: string]: unknown | ((query: BooliQuery, path: string) => unknown);
+  [operation: string]:
+    | GraphQLResponse<unknown>
+    | ((variables: Record<string, unknown>) => GraphQLResponse<unknown>);
 }): FakeTransport {
-  return fakeTransport((path, query) => {
-    const segment = path.split('/')[0] ?? '';
-    const route = routes[segment];
+  return fakeTransport((query, variables) => {
+    const match = query.match(/query\s+(\w+)/);
+    const name = match?.[1] ?? '';
+    const route = routes[name];
     if (route === undefined) {
-      throw new Error(`no route for ${path}`);
+      return { errors: [{ message: `no route for ${name}` }] };
     }
-    return typeof route === 'function'
-      ? (route as (q: BooliQuery, p: string) => unknown)(query, path)
-      : route;
+    return typeof route === 'function' ? route(variables) : route;
   });
 }
 
 /** A BooliClient backed by the given handler. */
-export function fakeClient(handler: GetHandler): BooliClient {
+export function fakeClient(handler: GraphqlHandler): BooliClient {
   return new BooliClient({ transport: fakeTransport(handler) });
 }
 

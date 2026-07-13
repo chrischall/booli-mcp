@@ -40,24 +40,11 @@ function column(rows: PropertySummary[], key: keyof PropertySummary): number[] {
     .filter((v): v is number => typeof v === 'number');
 }
 
-/**
- * Per-row sold-vs-asking change %, over rows that carry both a sold price
- * and a list price (asking). Positive = sold over asking.
- */
-function priceChanges(rows: PropertySummary[]): number[] {
-  const changes: number[] = [];
-  for (const r of rows) {
-    if (typeof r.sold_price === 'number' && typeof r.list_price === 'number' && r.list_price > 0) {
-      changes.push(((r.sold_price - r.list_price) / r.list_price) * 100);
-    }
-  }
-  return changes;
-}
-
 export function computeMarketStats(rows: PropertySummary[]): MarketStats {
   const sold = column(rows, 'sold_price');
   const perSqm = column(rows, 'price_per_sqm');
-  const changes = priceChanges(rows);
+  // Booli reports each sale's over/under-asking % directly.
+  const changes = column(rows, 'sold_vs_asking_percent');
   return {
     sample_size: rows.length,
     median_sold_price: sold.length ? Math.round(median(sold)) : null,
