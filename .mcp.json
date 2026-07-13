@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "booli": {
+      "command": "npx",
+      "args": ["-y", "booli-mcp"],
+      "env": {
+        "BOOLI_CALLER_ID": "${BOOLI_CALLER_ID}",
+        "BOOLI_API_KEY": "${BOOLI_API_KEY}"
+      }
+    }
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.chrischall/booli-mcp",
+  "description": "Booli.se real estate for Claude: search listings, sold prices, areas & market stats",
+  "repository": {
+    "url": "https://github.com/chrischall/booli-mcp",
+    "source": "github"
+  },
+  "version": "0.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "booli-mcp",
+      "version": "0.0.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

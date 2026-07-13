@@ -1,0 +1,22 @@
+name: Auto-merge PRs
+
+# Thin stub — the pipeline lives in chrischall/workflows.
+# pull_request_target so dependabot PRs can arm; PR code is never executed.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review, synchronize, labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  arm:
+    uses: chrischall/workflows/.github/workflows/reusable-auto-merge.yml@main
+    secrets:
+      release_pat: ${{ secrets.RELEASE_PAT }}

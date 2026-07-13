@@ -1,0 +1,35 @@
+name: PR auto-review
+
+# Thin stub — the pipeline lives in chrischall/workflows.
+
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review, synchronize, labeled]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+  id-token: write
+
+# `labeled` events get their own group keyed by label name: opening a PR
+# with --label fires `opened`+`labeled` back-to-back, and a shared group
+# would let the labeled event displace the queued review, leaving the PR
+# with no verdict and no label.
+concurrency:
+  group: |
+    pr-auto-review-${{ github.event.pull_request.number }}${{
+      github.event.action == 'labeled'
+        && format('-labeled-{0}', github.event.label.name)
+        || ''
+    }}
+  cancel-in-progress: false
+
+jobs:
+  review:
+    uses: chrischall/workflows/.github/workflows/reusable-pr-auto-review.yml@main
+    with:
+      conventions_hint: ""
+    secrets:
+      claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+      release_pat: ${{ secrets.RELEASE_PAT }}

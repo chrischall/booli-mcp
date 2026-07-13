@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.*
+*.tsbuildinfo
+*.skill
+*.mcpb
+.claude/worktrees/

@@ -1,0 +1,56 @@
+name: release-please
+
+# Thin stub: release-please runs here; the publish steps are the
+# chrischall/workflows mcp-publish composite action. The publish job stays
+# in THIS file (not a reusable workflow) because npm trusted publishing and
+# mcp-publisher bind to this repo's workflow identity via OIDC.
+#
+# The release PR is the human review gate: add `release-ready` to ship it.
+# The PAT (not GITHUB_TOKEN) so the release PR's events trigger CI/review.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      version: ${{ steps.release.outputs.version }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          token: ${{ secrets.RELEASE_PAT }}
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  publish:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write    # npm provenance + mcp-publisher OIDC
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+
+      - uses: chrischall/workflows/.github/actions/mcp-publish@main
+        with:
+          version: ${{ needs.release-please.outputs.version }}
+          tag-name: ${{ needs.release-please.outputs.tag_name }}
+          clawhub-token: ${{ secrets.CLAWHUB_TOKEN }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
