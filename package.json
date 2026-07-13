@@ -1,6 +1,6 @@
 {
   "name": "booli-mcp",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "license": "MIT",
   "mcpName": "io.github.chrischall/booli-mcp",
   "description": "Booli.se MCP server for Claude — developed and maintained by AI (Claude Code)",
