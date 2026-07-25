@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/chrischall/booli-mcp/compare/v1.0.0...v1.0.1) (2026-07-25)
+
+
+### Bug Fixes
+
+* **deps:** bump fast-uri out of the host-confusion advisories ([#7](https://github.com/chrischall/booli-mcp/issues/7)) ([b0212d8](https://github.com/chrischall/booli-mcp/commit/b0212d8f68d501ac1397467f32ef1fe58916ddbb))
+
 ## 1.0.0 (2026-07-13)
 
 
