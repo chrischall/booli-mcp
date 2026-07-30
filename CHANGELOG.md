@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/chrischall/booli-mcp/compare/v1.0.1...v1.0.2) (2026-07-30)
+
+
+### Bug Fixes
+
+* **deps:** bump @fetchproxy/* to 1.7.0 and @chrischall/mcp-utils to 0.14.0 ([#13](https://github.com/chrischall/booli-mcp/issues/13)) ([753e442](https://github.com/chrischall/booli-mcp/commit/753e442b3a09fa24445a5922f00a9e757ad3e8d3))
+
 ## [1.0.1](https://github.com/chrischall/booli-mcp/compare/v1.0.0...v1.0.1) (2026-07-25)
 
 
