@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "license": "MIT",
   "mcpName": "io.github.chrischall/booli-mcp",
-  "description": "Booli.se MCP server for Claude — developed and maintained by AI (Claude Code)",
+  "description": "Booli.se MCP server for Claude \u2014 developed and maintained by AI (Claude Code)",
   "author": "Claude Code (AI) <https://www.anthropic.com/claude>",
   "repository": {
     "type": "git",
@@ -45,8 +45,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@chrischall/mcp-utils": "^0.13.4",
-    "@fetchproxy/server": "^1.6.1",
+    "@chrischall/mcp-utils": "^0.14.0",
+    "@fetchproxy/server": "^1.7.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
     "zod": "^4.4.3"
   },
