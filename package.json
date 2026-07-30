@@ -1,9 +1,9 @@
 {
   "name": "booli-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "license": "MIT",
   "mcpName": "io.github.chrischall/booli-mcp",
-  "description": "Booli.se MCP server for Claude \u2014 developed and maintained by AI (Claude Code)",
+  "description": "Booli.se MCP server for Claude — developed and maintained by AI (Claude Code)",
   "author": "Claude Code (AI) <https://www.anthropic.com/claude>",
   "repository": {
     "type": "git",
