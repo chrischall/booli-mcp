@@ -47,7 +47,7 @@
   "dependencies": {
     "@chrischall/mcp-utils": "^0.14.0",
     "@fetchproxy/server": "^1.7.0",
-    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^4.4.3"
   },
   "devDependencies": {
