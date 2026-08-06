@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/chrischall/booli-mcp/compare/v1.0.2...v1.0.3) (2026-08-06)
+
+
+### Bug Fixes
+
+* **deps:** move to @fetchproxy/server 2.0.0 for the v3 handshake ([#22](https://github.com/chrischall/booli-mcp/issues/22)) ([d539fd1](https://github.com/chrischall/booli-mcp/commit/d539fd126699cfca1e27684a57b472d4e8588982))
+
 ## [1.0.2](https://github.com/chrischall/booli-mcp/compare/v1.0.1...v1.0.2) (2026-07-30)
 
 
