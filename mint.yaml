@@ -1,0 +1,35 @@
+version: 1
+name: Booli
+slug: booli
+summary: >-
+  Booli.se real estate tools for Claude — search listings, sold prices,
+  areas, and market stats BROWSER-BRIDGE MCP: it reaches its site through
+  the user's signed-in tab via the fetchproxy bridge, so a registration also
+  needs runtime fly-shared, bridge: true and a bridgePortEnv — registration
+  fields this manifest has no schema for. state.dataDir below is required
+  for bridge and is why it is declared.
+env:
+  - name: BOOLI_TRANSPORT
+    required: false
+    help: >-
+      Selects the transport used to reach the site (e.g. the fetchproxy bridge
+      vs a direct fetch). Leave unset for the default.
+  - name: BOOLI_WS_PORT
+    required: false
+    help: >-
+      Concentrator port for the fetchproxy browser bridge (defaults to the
+      fleet-shared 37149). The runner injects a per-registration port for a
+      hosted bridged child, so this is the name to give bridgePortEnv at
+      registration.
+state:
+  dataDir: true
+  reason: >-
+    The fetchproxy identity lives at $HOME/.fetchproxy/identity/<name>.json
+    and the pair code derives from it. Without a persistent $HOME every cold
+    start mints a fresh identity and re-prompts pairing in the browser; the
+    API refuses bridge without it.
+egress:
+  allow:
+    # Only hosts the SERVER process actually fetches.
+    - booli.se
+    - www.booli.se
