@@ -2,7 +2,7 @@
   "mcpServers": {
     "booli": {
       "command": "npx",
-      "args": ["-y", "booli-mcp"]
+      "args": ["-y", "@chrischall/booli-mcp"]
     }
   }
 }
