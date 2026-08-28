@@ -2,4 +2,4 @@
 // literal below (listed in release-please-config.json `extra-files`), and
 // tests/version-sync.test.ts guards it against package.json drift. Every
 // other module imports VERSION from here rather than re-declaring it.
-export const VERSION = '1.0.4'; // x-release-please-version
+export const VERSION = '1.0.5'; // x-release-please-version

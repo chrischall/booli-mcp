@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/chrischall/booli-mcp/compare/v1.0.4...v1.0.5) (2026-08-28)
+
+
+### Bug Fixes
+
+* **egress:** declare only the hosts the server process dials in mint.yaml ([#38](https://github.com/chrischall/booli-mcp/issues/38)) ([b4236c0](https://github.com/chrischall/booli-mcp/commit/b4236c002fc128560aac64e659ca3c7c9dcd5df3))
+
 ## [1.0.4](https://github.com/chrischall/booli-mcp/compare/v1.0.3...v1.0.4) (2026-08-28)
 
 
