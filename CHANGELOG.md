@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4](https://github.com/chrischall/booli-mcp/compare/v1.0.3...v1.0.4) (2026-08-28)
+
+
+### Bug Fixes
+
+* publish under the [@chrischall](https://github.com/chrischall) scope so npm accepts the package ([#36](https://github.com/chrischall/booli-mcp/issues/36)) ([5a3a149](https://github.com/chrischall/booli-mcp/commit/5a3a1497250cf42f3c54bb4b26e8de543d3fbac9))
+
 ## [1.0.3](https://github.com/chrischall/booli-mcp/compare/v1.0.2...v1.0.3) (2026-08-06)
 
 
