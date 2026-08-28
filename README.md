@@ -35,7 +35,7 @@ browser-bridge fallback when walled), `fetchproxy` (always the bridge), or
   "mcpServers": {
     "booli": {
       "command": "npx",
-      "args": ["-y", "booli-mcp"]
+      "args": ["-y", "@chrischall/booli-mcp"]
     }
   }
 }

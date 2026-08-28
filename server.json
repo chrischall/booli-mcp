@@ -10,7 +10,7 @@
   "packages": [
     {
       "registryType": "npm",
-      "identifier": "booli-mcp",
+      "identifier": "@chrischall/booli-mcp",
       "version": "1.0.3",
       "transport": {
         "type": "stdio"
