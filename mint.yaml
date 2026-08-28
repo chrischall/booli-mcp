@@ -30,6 +30,11 @@ state:
     API refuses bridge without it.
 egress:
   allow:
-    # Only hosts the SERVER process actually fetches.
-    - booli.se
+    # Only hosts the SERVER process actually fetches. BOOLI_TRANSPORT=direct
+    # (and the first attempt under the default auto) POSTs straight to
+    # https://www.booli.se/graphql from the process (src/transport-direct.ts);
+    # no redirect hop — the Cloudflare challenge answers on www itself. The
+    # fetchproxy mode dials nothing: the user's tab does the fetch. The apex
+    # booli.se is never dialled (it appears only in URLs this server builds
+    # and returns, src/format.ts), so it is not listed.
     - www.booli.se
