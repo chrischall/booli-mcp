@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/chrischall/booli-mcp/compare/v1.0.5...v1.1.0) (2026-08-29)
+
+
+### Features
+
+* **deps:** take @fetchproxy/server 2.2.0 so the concentrator can bind its sandbox address ([#40](https://github.com/chrischall/booli-mcp/issues/40)) ([fa74c82](https://github.com/chrischall/booli-mcp/commit/fa74c82ac75be610bd97be954ac17a7c6963a980))
+
 ## [1.0.5](https://github.com/chrischall/booli-mcp/compare/v1.0.4...v1.0.5) (2026-08-28)
 
 
