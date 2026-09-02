@@ -30,6 +30,7 @@ import type {
   BooliTransport,
   TransportStatus,
 } from './transport.js';
+import { CloudflareChallengeError } from './transport-direct.js';
 
 /**
  * The whole fetchproxy fleet shares ONE concentrator port — the
@@ -160,10 +161,17 @@ export class BooliFetchproxyTransport implements BooliTransport {
     } catch {
       // A 2xx that isn't JSON is almost always the Cloudflare interstitial
       // or an HTML error page — surface that instead of a bare SyntaxError.
+      // Typed as a challenge via `cause` so the healthcheck classifies it
+      // as `cloudflare_challenge` (the shared tool classifies by instanceof).
       throw new Error(
         'Booli GraphQL returned non-JSON via the browser bridge — likely ' +
           'a Cloudflare challenge page. Open or refresh a www.booli.se tab ' +
           `and retry. Body starts: ${result.body.slice(0, 120)}`,
+        {
+          cause: new CloudflareChallengeError(
+            'Booli GraphQL answered a non-JSON page via the browser bridge (Cloudflare challenge interstitial)',
+          ),
+        },
       );
     }
   }

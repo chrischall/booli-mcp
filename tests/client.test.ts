@@ -1,5 +1,4 @@
-import { describe, it, expect } from 'vitest';
-import { vi } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import type { BridgeHealthcheckTransport } from '@chrischall/mcp-utils/fetchproxy';
 import { BooliClient } from '../src/client.js';
 import { fakeBridgeHealth, fakeTransport, routedClient } from './helpers.js';

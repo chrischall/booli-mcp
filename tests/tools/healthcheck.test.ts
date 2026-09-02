@@ -177,6 +177,43 @@ describe('booli_healthcheck on the browser bridge', () => {
     expect(body.hint).toMatch(/No Transporter extension is attached/);
   });
 
+  it('classifies the bridge leg\'s non-JSON challenge page as cloudflare_challenge (#53)', async () => {
+    const body = await call({
+      async graphql<T>(): Promise<T> {
+        throw new Error('Booli GraphQL returned non-JSON via the browser bridge — likely a Cloudflare challenge page.', {
+          cause: new CloudflareChallengeError('challenge interstitial'),
+        });
+      },
+      status: () => ON_BRIDGE,
+      bridgeTransport: () => fakeBridgeTransport(),
+    });
+    expect(body.ok).toBe(false);
+    expect(body.error?.kind).toBe('cloudflare_challenge');
+    expect(body.hint).toMatch(/BOOLI_TRANSPORT=fetchproxy/);
+  });
+
+  it('files the bridge leg\'s non-2xx as http, not unknown (#53)', async () => {
+    const body = await call({
+      async graphql<T>(): Promise<T> {
+        throw new Error('Booli GraphQL HTTP 502 via browser bridge — body starts: bad gateway. Open or refresh a www.booli.se tab (no login needed) and retry.');
+      },
+      status: () => ON_BRIDGE,
+      bridgeTransport: () => fakeBridgeTransport(),
+    });
+    expect(body.error?.kind).toBe('http');
+  });
+
+  it('fails a 200 with zero suggestions instead of calling it healthy', async () => {
+    const body = await call({
+      async graphql<T>(): Promise<T> {
+        return { data: { areaSuggestionSearch: { suggestions: [] } } } as T;
+      },
+      status: () => DIRECT,
+    });
+    expect(body.ok).toBe(false);
+    expect(body.error?.message).toMatch(/returned 0 hits/);
+  });
+
   it('sees through the transport wrapper to a bridge-down cause', async () => {
     const body = await call({
       async graphql<T>(): Promise<T> {

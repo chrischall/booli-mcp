@@ -49,6 +49,16 @@ function classifyThrown(
     return { kind: 'cloudflare_challenge', hint: WALLED_HINT };
   }
   const cause = err instanceof Error ? err.cause : undefined;
+  // The bridge leg's non-JSON answer (transport-fetchproxy.ts) carries the
+  // challenge as `cause`: same wall, same remedy.
+  if (cause instanceof CloudflareChallengeError) {
+    return { kind: 'cloudflare_challenge', hint: WALLED_HINT };
+  }
+  // The bridge leg's non-2xx is a plain Error (an upstream HTTP status,
+  // not a bridge fault) — file it as `http` rather than `unknown`.
+  if (err instanceof Error && /^Booli GraphQL HTTP \d+ via browser bridge/.test(err.message)) {
+    return { kind: 'http' };
+  }
   if (cause instanceof FetchproxySessionNotReadyError) {
     return { kind: 'session_not_ready' };
   }
@@ -69,7 +79,17 @@ export function registerHealthcheckTools(server: McpServer, client: BooliClient)
     transport: () => client.bridgeTransport(),
     path: () =>
       client.transportStatus() ?? { transport: 'unknown', mode: 'auto' },
-    probeFn: async () => JSON.stringify(await client.healthcheck()),
+    probeFn: async () => {
+      const result = await client.healthcheck();
+      // A 200 with no hits is a changed query or field, not a healthy
+      // endpoint — the serialised body would be the same length either way.
+      if (result.hits === 0) {
+        throw new Error(
+          'Booli answered, but the area-suggestion probe for "Stockholm" returned 0 hits — the query or a field may have changed.',
+        );
+      }
+      return JSON.stringify(result);
+    },
     classifyThrown,
     hints: { direct: DIRECT_FAILURE_HINT },
   });
