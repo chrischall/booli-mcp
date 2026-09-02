@@ -11,6 +11,7 @@ export {
   versionSyncTest,
 } from '@chrischall/mcp-utils/test';
 
+import type { BridgeHealth } from '@chrischall/mcp-utils/fetchproxy';
 import { BooliClient } from '../src/client.js';
 import type { GraphQLResponse, BooliTransport } from '../src/transport.js';
 
@@ -68,4 +69,42 @@ export function routedClient(
   routes: Parameters<typeof routedTransport>[0],
 ): BooliClient {
   return new BooliClient({ transport: routedTransport(routes) });
+}
+
+/**
+ * A full `bridgeHealth()` snapshot (the `status()` shape of a fetchproxy
+ * bridge) for fakes. Defaults to a linked host on the fleet port; override
+ * the bits a test cares about.
+ */
+export function fakeBridgeHealth(
+  overrides: Partial<BridgeHealth> = {},
+): BridgeHealth {
+  return {
+    role: 'host',
+    port: 37_149,
+    host: '127.0.0.1',
+    serverVersion: '2.5.0',
+    fetchTimeoutMs: 20_000,
+    bridgeReviveDelayMs: 2_000,
+    lastSuccessAt: null,
+    lastFailureAt: null,
+    lastFailureReason: null,
+    consecutiveFailures: 0,
+    lastExtensionMessageAt: 1_756_850_326_000,
+    session: { state: 'linked', pairCode: null, extensionConnected: true },
+    keepAlive: {
+      enabled: true,
+      intervalMs: 20_000,
+      maxIdleMs: 300_000,
+      lastPingAt: null,
+      totalPings: 0,
+      idleSinceMs: null,
+    },
+    swEviction: {
+      lazyReviveAttempts: 0,
+      lazyReviveSuccesses: 0,
+      lastEvictionDetectedAt: null,
+    },
+    ...overrides,
+  };
 }

@@ -15,7 +15,11 @@
  * The queries are anonymous (no login, no token), so nothing needs
  * redaction; a descriptive User-Agent identifies the client honestly.
  */
-import type { GraphQLResponse, BooliTransport } from './transport.js';
+import type {
+  GraphQLResponse,
+  BooliTransport,
+  TransportStatus,
+} from './transport.js';
 
 const GRAPHQL_ENDPOINT = 'https://www.booli.se/graphql';
 const RETRYABLE_STATUS = new Set([429, 500, 502, 503, 504]);
@@ -100,6 +104,15 @@ export class DirectTransport implements BooliTransport {
     this.maxRetries = opts.maxRetries ?? 2;
     this.userAgent = `booli-mcp/${opts.version ?? '0.0.0'} (+https://github.com/chrischall/booli-mcp)`;
     this.fetchImpl = opts.fetchImpl ?? fetch;
+  }
+
+  status(): TransportStatus {
+    return { transport: 'direct', mode: 'direct' };
+  }
+
+  /** The direct fetch never holds a bridge. */
+  bridgeTransport(): undefined {
+    return undefined;
   }
 
   async graphql<T>(

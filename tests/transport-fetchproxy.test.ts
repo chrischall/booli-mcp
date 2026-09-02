@@ -1,5 +1,9 @@
 import { describe, it, expect, vi } from 'vitest';
-import { FetchproxyBridgeDownError } from '@chrischall/mcp-utils/fetchproxy';
+import {
+  FetchproxyBridgeDownError,
+  FetchproxySessionNotReadyError,
+} from '@chrischall/mcp-utils/fetchproxy';
+import { fakeBridgeHealth } from './helpers.js';
 import {
   BooliFetchproxyTransport,
   type BooliBridge,
@@ -14,6 +18,8 @@ function fakeBridge(overrides: Partial<BooliBridge> = {}): BooliBridge {
       body: JSON.stringify({ data: { ok: true } }),
       url: 'https://www.booli.se/graphql',
     })),
+    status: vi.fn(() => fakeBridgeHealth()),
+    runProbe: vi.fn(),
     ...overrides,
   };
 }
@@ -59,6 +65,16 @@ describe('BooliFetchproxyTransport', () => {
     await expect(t.graphql('q', {})).rejects.toThrow(/Booli bridge:.+\S/);
   });
 
+  it('keeps the typed bridge error as the cause of the wrapper', async () => {
+    const inner = new FetchproxySessionNotReadyError({ mcpId: 'booli-mcp', pairCode: 'AB12' });
+    const bridge = fakeBridge({ fetch: vi.fn(async () => { throw inner; }) });
+    const t = new BooliFetchproxyTransport({ bridge });
+    const err = await t.graphql('q', {}).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect((err as Error).message).toMatch(/^Booli bridge:/);
+    expect((err as Error).cause).toBe(inner);
+  });
+
   it('throws on a non-2xx bridge response', async () => {
     const bridge = fakeBridge({
       fetch: vi.fn(async () => ({ status: 403, body: 'nope' })),
@@ -84,5 +100,23 @@ describe('BooliFetchproxyTransport', () => {
     expect(
       new BooliFetchproxyTransport({ createServer: createServer as never }),
     ).toBeInstanceOf(BooliFetchproxyTransport);
+  });
+});
+
+describe('BooliFetchproxyTransport status', () => {
+  it('reports the fetchproxy leg without touching the bridge', () => {
+    const bridge = fakeBridge();
+    const t = new BooliFetchproxyTransport({ bridge });
+    expect(t.status()).toEqual({ transport: 'fetchproxy', mode: 'fetchproxy' });
+    expect(bridge.status).not.toHaveBeenCalled();
+  });
+
+  it('exposes the underlying bridge so the shared healthcheck projects its state', () => {
+    const bridge = fakeBridge({
+      status: vi.fn(() => fakeBridgeHealth({ role: 'peer', port: 37_150 })),
+    });
+    const t = new BooliFetchproxyTransport({ bridge });
+    expect(t.bridgeTransport()).toBe(bridge);
+    expect(t.bridgeTransport().status()).toMatchObject({ role: 'peer', port: 37_150 });
   });
 });

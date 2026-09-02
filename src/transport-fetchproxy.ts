@@ -19,12 +19,17 @@
 import {
   bridgeErrorInfo,
   createFetchproxyTransport,
+  type BridgeHealthcheckTransport,
   type FetchproxyFetchInit,
   type FetchproxyServer,
   type FetchproxyServerOpts,
 } from '@chrischall/mcp-utils/fetchproxy';
 import { readPortEnv } from '@chrischall/mcp-utils';
-import type { GraphQLResponse, BooliTransport } from './transport.js';
+import type {
+  GraphQLResponse,
+  BooliTransport,
+  TransportStatus,
+} from './transport.js';
 
 /**
  * The whole fetchproxy fleet shares ONE concentrator port — the
@@ -36,8 +41,12 @@ const DEFAULT_WS_PORT = 37_149;
 /**
  * The minimal slice of the fetchproxy transport this adapter drives —
  * narrow so tests can fake it without modelling the whole verb surface.
+ * It structurally includes `runProbe` + `status()` (the
+ * {@link BridgeHealthcheckTransport} slice) so the bridge can be handed
+ * straight to the shared bridge healthcheck; the real
+ * `createFetchproxyTransport` return value satisfies it.
  */
-export interface BooliBridge {
+export interface BooliBridge extends BridgeHealthcheckTransport {
   /** Load identity and prepare the bridge (lazy — binds nothing). */
   start(): Promise<void>;
   /** One same-origin fetch inside the paired tab. */
@@ -98,6 +107,20 @@ export class BooliFetchproxyTransport implements BooliTransport {
     return this.bridge;
   }
 
+  /** The bridge leg. The bridge's live state comes via {@link bridgeTransport}. */
+  status(): TransportStatus {
+    return { transport: 'fetchproxy', mode: 'fetchproxy' };
+  }
+
+  /**
+   * The underlying bridge, for the shared healthcheck's bridge projection
+   * (role, port, extension link state). `bridgeHealth()` works before
+   * `start()` too, so this is safe at any point in the lifecycle.
+   */
+  bridgeTransport(): BridgeHealthcheckTransport {
+    return this.bridge;
+  }
+
   async graphql<T>(
     query: string,
     variables: Record<string, unknown>,
@@ -117,9 +140,12 @@ export class BooliFetchproxyTransport implements BooliTransport {
     } catch (err) {
       // Bridge-layer failures (extension down, pairing pending, timeout)
       // get the typed error's remediation hint instead of a bare message.
+      // The typed error rides along as `cause` so the healthcheck can
+      // still classify it (session_not_ready / bridge_down) after wrapping.
       const info = bridgeErrorInfo(err);
       throw new Error(
         `Booli bridge: ${info.message}${info.hint ? ` ${info.hint}` : ''}`,
+        { cause: err },
       );
     }
     if (result.status < 200 || result.status >= 300) {

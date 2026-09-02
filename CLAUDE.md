@@ -28,8 +28,10 @@ just a cleared Cloudflare session (any normal page view). Verified live
 ## Transport (mirrors hemnet-mcp's fetchproxy pattern)
 
 - `src/transport.ts` — the `BooliTransport` interface (`graphql(query,
-  variables)`). Every tool is written against it so tests drive them
-  through an in-memory fake (tests/helpers.ts) with zero network.
+  variables)`, plus optional `status()` → `TransportStatus` and
+  `bridgeTransport()` → the bridge's `runProbe`/`status` slice). Every
+  tool is written against it so tests drive them through an in-memory
+  fake (tests/helpers.ts) with zero network.
 - `src/transport-direct.ts` — direct Node `fetch` to www.booli.se/graphql;
   throws a typed `CloudflareChallengeError` on the bot wall (detected by
   `cf-mitigated: challenge` / `_cf_chl_opt` / "Just a moment" only).
@@ -39,7 +41,24 @@ just a cleared Cloudflare session (any normal page view). Verified live
 - `src/transport-fallback.ts` — `createDefaultTransport`: direct-first with
   sticky fallback to the bridge on `CloudflareChallengeError`.
   `BOOLI_TRANSPORT` = `direct` | `fetchproxy` | `auto` (default). Shared
-  fleet WS port **37149** (`BOOLI_WS_PORT`).
+  fleet WS port **37149** (`BOOLI_WS_PORT`). Its `status()` reports the
+  leg the next call rides (`mode: 'auto'`), and `bridgeTransport()` the
+  bridge once the fallback has built it.
+- `src/tools/healthcheck.ts` — `booli_healthcheck` is the fleet's shared
+  `registerBridgeHealthcheckTool` (`@chrischall/mcp-utils/fetchproxy`) in
+  its direct-first (`path`) mode: `probeFn` is `client.healthcheck()`,
+  `path` reads `client.transportStatus()` and `transport` reads
+  `client.bridgeTransport()` AFTER the probe (the probe may be what flips
+  the fallback). Output: `ok`, `transport` (`{transport, mode}` — the leg
+  and the `BOOLI_TRANSPORT` pin, nothing else), `bridge` (role, port,
+  `session_state`, `pending_pair_code`, `extension_connected`, epoch-ms
+  `last_extension_message_at` — the ONE bridge block, projected by the
+  shared tool from `bridgeTransport().status()`; present only once a
+  bridge exists), `probe`, `error` (`kind` — `cloudflare_challenge` for the
+  direct leg's `CloudflareChallengeError`, else the fetchproxy vocabulary
+  `session_not_ready` / `bridge_down` / `timeout` / …), `hint`. The
+  fetchproxy transport wraps typed bridge errors with the original as
+  `cause` so the classification survives the wrapper.
 - `@fetchproxy/server` is bundled in (no esbuild `--external`), so the
   fetchproxy imports are eager static imports — safe because nothing is
   externalized. If you ever externalize it, make those imports lazy
