@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.1](https://github.com/chrischall/booli-mcp/compare/v1.2.0...v1.2.1) (2026-09-02)
+
+
+### Bug Fixes
+
+* **healthcheck:** type the bridge leg's HTTP failure instead of matching its message ([#59](https://github.com/chrischall/booli-mcp/issues/59)) ([b29049a](https://github.com/chrischall/booli-mcp/commit/b29049af18faa28086c70b2d75689feec84fdb4a))
+
 ## [1.2.0](https://github.com/chrischall/booli-mcp/compare/v1.1.0...v1.2.0) (2026-09-02)
 
 

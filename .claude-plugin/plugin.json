@@ -1,7 +1,7 @@
 {
   "name": "booli",
   "displayName": "Booli",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Booli.se real estate tools for Claude — search listings, sold prices, areas, and market stats via MCP",
   "author": {
     "name": "Chris Chall"
