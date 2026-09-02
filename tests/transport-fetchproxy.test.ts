@@ -4,6 +4,7 @@ import {
   FetchproxySessionNotReadyError,
 } from '@chrischall/mcp-utils/fetchproxy';
 import { fakeBridgeHealth } from './helpers.js';
+import { BridgeHttpStatusError } from '../src/transport-fetchproxy.js';
 import { CloudflareChallengeError } from '../src/transport-direct.js';
 import {
   BooliFetchproxyTransport,
@@ -122,5 +123,20 @@ describe('BooliFetchproxyTransport status', () => {
     const t = new BooliFetchproxyTransport({ bridge });
     expect(t.bridgeTransport()).toBe(bridge);
     expect(t.bridgeTransport().status()).toMatchObject({ role: 'peer', port: 37_150 });
+  });
+});
+
+describe('BooliFetchproxyTransport — typed HTTP cause', () => {
+  it('attaches the status as a BridgeHttpStatusError cause on a non-2xx', async () => {
+    const bridge = fakeBridge({
+      fetch: vi.fn(async () => ({ status: 500, body: 'upstream broke' })),
+    });
+    const err = await new BooliFetchproxyTransport({ bridge })
+      .graphql('q', {})
+      .catch((e: unknown) => e as Error);
+    expect(err.message).toContain('HTTP 500 via browser bridge');
+    // Typed for the healthcheck's classifier: the status rides as `cause`.
+    expect(err.cause).toBeInstanceOf(BridgeHttpStatusError);
+    expect((err.cause as BridgeHttpStatusError).status).toBe(500);
   });
 });

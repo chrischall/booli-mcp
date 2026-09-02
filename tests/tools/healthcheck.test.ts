@@ -9,6 +9,7 @@ import { createTestHarness, parseToolResult, fakeBridgeHealth } from '../helpers
 import { BooliClient } from '../../src/client.js';
 import { registerHealthcheckTools } from '../../src/tools/healthcheck.js';
 import { CloudflareChallengeError } from '../../src/transport-direct.js';
+import { BridgeHttpStatusError } from '../../src/transport-fetchproxy.js';
 import type { BooliTransport, TransportStatus } from '../../src/transport.js';
 import { AREA } from '../fixtures.js';
 
@@ -195,7 +196,9 @@ describe('booli_healthcheck on the browser bridge', () => {
   it('files the bridge leg\'s non-2xx as http, not unknown (#53)', async () => {
     const body = await call({
       async graphql<T>(): Promise<T> {
-        throw new Error('Booli GraphQL HTTP 502 via browser bridge — body starts: bad gateway. Open or refresh a www.booli.se tab (no login needed) and retry.');
+        throw new Error('Booli GraphQL HTTP 502 via browser bridge — body starts: bad gateway.', {
+          cause: new BridgeHttpStatusError(502),
+        });
       },
       status: () => ON_BRIDGE,
       bridgeTransport: () => fakeBridgeTransport(),
