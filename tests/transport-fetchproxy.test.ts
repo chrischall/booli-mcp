@@ -4,6 +4,7 @@ import {
   FetchproxySessionNotReadyError,
 } from '@chrischall/mcp-utils/fetchproxy';
 import { fakeBridgeHealth } from './helpers.js';
+import { CloudflareChallengeError } from '../src/transport-direct.js';
 import {
   BooliFetchproxyTransport,
   type BooliBridge,
@@ -88,7 +89,10 @@ describe('BooliFetchproxyTransport', () => {
       fetch: vi.fn(async () => ({ status: 200, body: '<html>Just a moment' })),
     });
     const t = new BooliFetchproxyTransport({ bridge });
-    await expect(t.graphql('q', {})).rejects.toThrow(/non-JSON.*Cloudflare/s);
+    const err = await t.graphql('q', {}).catch((e: unknown) => e);
+    expect((err as Error).message).toMatch(/non-JSON.*Cloudflare/s);
+    // Typed for the healthcheck's classifier.
+    expect((err as Error).cause).toBeInstanceOf(CloudflareChallengeError);
   });
 
   it('constructs a real bridge by default (no injected bridge)', () => {
