@@ -22,6 +22,7 @@ import {
 } from '@chrischall/mcp-utils/fetchproxy';
 import type { BooliClient } from '../client.js';
 import { CloudflareChallengeError } from '../transport-direct.js';
+import { BridgeHttpStatusError } from '../transport-fetchproxy.js';
 
 const WALLED_HINT =
   'Booli is serving a Cloudflare bot challenge. Set BOOLI_TRANSPORT=fetchproxy ' +
@@ -54,9 +55,9 @@ function classifyThrown(
   if (cause instanceof CloudflareChallengeError) {
     return { kind: 'cloudflare_challenge', hint: WALLED_HINT };
   }
-  // The bridge leg's non-2xx is a plain Error (an upstream HTTP status,
-  // not a bridge fault) — file it as `http` rather than `unknown`.
-  if (err instanceof Error && /^Booli GraphQL HTTP \d+ via browser bridge/.test(err.message)) {
+  // The bridge leg's non-2xx carries a typed cause (an upstream HTTP
+  // status, not a bridge fault) — file it as `http` rather than `unknown`.
+  if (cause instanceof BridgeHttpStatusError) {
     return { kind: 'http' };
   }
   if (cause instanceof FetchproxySessionNotReadyError) {
