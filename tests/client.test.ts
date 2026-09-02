@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
+import { vi } from 'vitest';
+import type { BridgeHealthcheckTransport } from '@chrischall/mcp-utils/fetchproxy';
 import { BooliClient } from '../src/client.js';
-import { fakeTransport, routedClient } from './helpers.js';
+import { fakeBridgeHealth, fakeTransport, routedClient } from './helpers.js';
 import { AREA, DETAIL, LISTING, PROJECT_NODE, SOLD } from './fixtures.js';
 
 describe('BooliClient', () => {
@@ -90,5 +92,24 @@ describe('BooliClient', () => {
     const t = fakeTransport(() => ({ data: { areaSuggestionSearch: { suggestions: [AREA] } } }));
     const client = new BooliClient({ transport: t });
     expect(await client.healthcheck()).toEqual({ ok: true, hits: 1 });
+  });
+
+  it('forwards transportStatus and bridgeTransport when the transport reports them', () => {
+    const bridge: BridgeHealthcheckTransport = { runProbe: vi.fn(), status: () => fakeBridgeHealth() };
+    const client = new BooliClient({
+      transport: {
+        ...fakeTransport(() => ({ data: {} })),
+        status: () => ({ transport: 'fetchproxy', mode: 'auto' }),
+        bridgeTransport: () => bridge,
+      },
+    });
+    expect(client.transportStatus()).toEqual({ transport: 'fetchproxy', mode: 'auto' });
+    expect(client.bridgeTransport()).toBe(bridge);
+  });
+
+  it('returns undefined for transportStatus and bridgeTransport on a bare transport', () => {
+    const client = new BooliClient({ transport: fakeTransport(() => ({ data: {} })) });
+    expect(client.transportStatus()).toBeUndefined();
+    expect(client.bridgeTransport()).toBeUndefined();
   });
 });

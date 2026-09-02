@@ -25,7 +25,11 @@ browser-bridge fallback when walled), `fetchproxy` (always the bridge), or
 1. Install the Transporter (fetchproxy) browser extension and keep a
    **www.booli.se** tab open.
 2. On the first request, approve the one-time pairing prompt in Transporter.
-3. Run `booli_healthcheck` to confirm the path is working.
+3. Run `booli_healthcheck` to confirm the path is working. Its `transport`
+   field says which leg served the probe (`direct` or `fetchproxy`) and,
+   once the bridge exists, `bridge.session_state` says whether the
+   Transporter extension is `linked`, `pair_pending` (approve the pair code
+   it names), or `extension_disconnected`.
 
 ## Install
 
@@ -50,7 +54,7 @@ browser-bridge fallback when walled), `fetchproxy` (always the bridge), or
 | `booli_get_listing` | Full detail for one property (active or sold) by residence id |
 | `booli_search_sold` | Search sold listings (slutpriser) with final prices |
 | `booli_market_stats` | Median/average sold-price statistics for an area |
-| `booli_healthcheck` | Verify the data path (direct or via the browser bridge) |
+| `booli_healthcheck` | Probe the data path and report `transport` (direct / fetchproxy, the `BOOLI_TRANSPORT` mode) and, once the bridge is up, `bridge` (role, port, extension link `session_state`, pending pair code) with a next-step hint |
 
 Searches scope by `area_id` (from `booli_search_areas`) or a free-text
 `location`. Money is SEK, areas m². See

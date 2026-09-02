@@ -4,7 +4,9 @@ import {
   createDefaultTransport,
 } from '../src/transport-fallback.js';
 import { CloudflareChallengeError } from '../src/transport-direct.js';
-import type { BooliTransport, GraphQLResponse } from '../src/transport.js';
+import type { BooliTransport, GraphQLResponse, TransportStatus } from '../src/transport.js';
+import type { BridgeHealthcheckTransport } from '@chrischall/mcp-utils/fetchproxy';
+import { fakeBridgeHealth } from './helpers.js';
 
 function transportReturning(data: unknown): BooliTransport {
   return { graphql: vi.fn(async () => ({ data }) as GraphQLResponse<unknown>) };
@@ -46,6 +48,51 @@ describe('FallbackTransport', () => {
     const t = new FallbackTransport(direct, factory);
     await expect(t.graphql('q', {})).rejects.toThrow(/boom/);
     expect(factory).not.toHaveBeenCalled();
+  });
+});
+
+describe('FallbackTransport status', () => {
+  const directStatus: TransportStatus = { transport: 'direct', mode: 'direct' };
+  const bridgeStatus: TransportStatus = { transport: 'fetchproxy', mode: 'fetchproxy' };
+  const bridgeHealthcheck: BridgeHealthcheckTransport = {
+    runProbe: vi.fn(),
+    status: () => fakeBridgeHealth(),
+  };
+
+  it('reports the direct leg (mode auto) and no bridge before any challenge', () => {
+    const direct = { ...transportReturning({}), status: () => directStatus };
+    const t = new FallbackTransport(direct, () => transportReturning({}));
+    expect(t.status()).toEqual({ transport: 'direct', mode: 'auto' });
+    expect(t.bridgeTransport()).toBeUndefined();
+  });
+
+  it('reports the bridge leg (mode auto) and forwards the bridge after the switch', async () => {
+    const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const direct = transportThrowing(new CloudflareChallengeError('walled'));
+    const bridge = {
+      ...transportReturning({}),
+      status: () => bridgeStatus,
+      bridgeTransport: () => bridgeHealthcheck,
+    };
+    const t = new FallbackTransport(direct, () => bridge);
+    await t.graphql('q', {});
+    expect(t.status()).toEqual({ ...bridgeStatus, mode: 'auto' });
+    expect(t.bridgeTransport()).toBe(bridgeHealthcheck);
+    stderr.mockRestore();
+  });
+
+  it('reports an unknown path when the active leg has no status', async () => {
+    const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const t = new FallbackTransport(transportReturning({}), () => transportReturning({}));
+    expect(t.status()).toEqual({ transport: 'unknown', mode: 'auto' });
+    const walled = new FallbackTransport(
+      transportThrowing(new CloudflareChallengeError('walled')),
+      () => transportReturning({}),
+    );
+    await walled.graphql('q', {});
+    expect(walled.status()).toEqual({ transport: 'unknown', mode: 'auto' });
+    expect(walled.bridgeTransport()).toBeUndefined();
+    stderr.mockRestore();
   });
 });
 

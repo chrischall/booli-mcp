@@ -14,7 +14,12 @@
  * `fetchproxy` (always ride the tab), `auto` (this fallback — default).
  */
 import { readEnvVar } from '@chrischall/mcp-utils';
-import type { GraphQLResponse, BooliTransport } from './transport.js';
+import type { BridgeHealthcheckTransport } from '@chrischall/mcp-utils/fetchproxy';
+import type {
+  GraphQLResponse,
+  BooliTransport,
+  TransportStatus,
+} from './transport.js';
 import { CloudflareChallengeError, DirectTransport } from './transport-direct.js';
 import { BooliFetchproxyTransport } from './transport-fetchproxy.js';
 
@@ -47,6 +52,22 @@ export class FallbackTransport implements BooliTransport {
     }
     this.bridge ??= this.bridgeFactory();
     return this.bridge.graphql<T>(query, variables);
+  }
+
+  /**
+   * The path the next request rides. `bridge` is only ever built after the
+   * switch, so its presence IS the walled state; `mode` is always `auto`
+   * here so a reader can tell "on the bridge by fallback" from "pinned".
+   */
+  status(): TransportStatus {
+    const active = this.bridge ?? this.direct;
+    const inner = active.status?.() ?? { transport: 'unknown' as const };
+    return { ...inner, mode: 'auto' };
+  }
+
+  /** The bridge's healthcheck slice once the fallback has built it. */
+  bridgeTransport(): BridgeHealthcheckTransport | undefined {
+    return this.bridge?.bridgeTransport?.();
   }
 }
 

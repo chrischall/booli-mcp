@@ -15,7 +15,8 @@ import {
   redactSecrets,
   truncateErrorMessage,
 } from '@chrischall/mcp-utils';
-import type { BooliTransport } from './transport.js';
+import type { BridgeHealthcheckTransport } from '@chrischall/mcp-utils/fetchproxy';
+import type { BooliTransport, TransportStatus } from './transport.js';
 import {
   AREA_SUGGESTIONS,
   PROPERTY_DETAIL,
@@ -144,5 +145,19 @@ export class BooliClient {
   async healthcheck(): Promise<{ ok: true; hits: number }> {
     const hits = await this.areaSuggestions('Stockholm');
     return { ok: true, hits: hits.length };
+  }
+
+  /**
+   * Which path the transport is serving on, if it reports one — so
+   * `booli_healthcheck` can say whether a probe rode the direct fetch or
+   * the browser bridge, and whether the bridge ever linked.
+   */
+  transportStatus(): TransportStatus | undefined {
+    return this.transport.status?.();
+  }
+
+  /** The fetchproxy bridge behind the transport, once one exists. */
+  bridgeTransport(): BridgeHealthcheckTransport | undefined {
+    return this.transport.bridgeTransport?.();
   }
 }
