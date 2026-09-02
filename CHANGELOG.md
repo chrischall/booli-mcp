@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.0](https://github.com/chrischall/booli-mcp/compare/v1.1.0...v1.2.0) (2026-09-02)
+
+
+### Features
+
+* **healthcheck:** adopt the shared bridge healthcheck and report the extension link state ([#52](https://github.com/chrischall/booli-mcp/issues/52)) ([e2c53cf](https://github.com/chrischall/booli-mcp/commit/e2c53cfea5d9029151876b125cd194e0c1ce1cab))
+
+
+### Bug Fixes
+
+* **healthcheck:** classify the bridge leg's challenge page and HTTP failures, and fail a zero-hit probe ([#55](https://github.com/chrischall/booli-mcp/issues/55)) ([e6c12fc](https://github.com/chrischall/booli-mcp/commit/e6c12fc10bcb91dba178712ab4b999d05ec9b710))
+
 ## [1.1.0](https://github.com/chrischall/booli-mcp/compare/v1.0.5...v1.1.0) (2026-08-29)
 
 
