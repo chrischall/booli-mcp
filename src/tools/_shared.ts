@@ -1,3 +1,18 @@
+import { viewParam } from '@chrischall/mcp-utils';
+
+/**
+ * The rungs this server honours (`@chrischall/mcp-utils`' `view` vocabulary;
+ * `chrischall/workflows` `docs/fleet-conventions.md`, "Response shape").
+ *
+ * Booli was already compact-by-default on SEARCH (`args.compact ?? true`) and
+ * this only renames that. What it does change is `booli_get_listing`, which
+ * defaulted the other way — the one tool where a caller was most likely to be
+ * handed a whole raw GraphQL node without asking.
+ *
+ * No `raw`: `full` already returns the untouched node.
+ */
+export const BOOLI_VIEWS = ['compact', 'full'] as const;
+
 /**
  * Shared search-input plumbing for the listings + sold tools.
  *
@@ -68,10 +83,7 @@ export const commonSearchShape = {
   sort: z.enum(SORT_KEYS).optional().describe('Sort key (default: newest published).'),
   ascending: z.boolean().optional().describe('Sort ascending (default false).'),
   page: z.number().int().min(1).optional().describe('1-based page (default 1).'),
-  compact: z
-    .boolean()
-    .optional()
-    .describe('Return slim summary records (default true). Set false for full raw fields.'),
+  view: viewParam(BOOLI_VIEWS, { note: 'compact returns the slim PropertySummary/detail projection; "full" returns Booli\'s whole GraphQL node.' }),
 };
 
 /** Parsed args for the shared search shape. */
@@ -91,7 +103,7 @@ export interface CommonSearchArgs {
   sort?: string;
   ascending?: boolean;
   page?: number;
-  compact?: boolean;
+  view?: string;
 }
 
 /** Push `{key, value}` when the value is defined. */
