@@ -1,4 +1,3 @@
-import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 /**
  * `booli_search_sold` — the sold-prices (slutpriser) surface, Booli's
  * signature comparables dataset.
@@ -9,6 +8,7 @@ import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
  * sold — is `booli_get_listing`, since Booli resolves both by residence
  * id.)
  */
+import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';

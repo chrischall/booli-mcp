@@ -1,4 +1,3 @@
-import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 /**
  * `booli_search_listings` + `booli_get_listing` — the for-sale surface.
  *
@@ -7,6 +6,7 @@ import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
  * {@link PropertySummary} by default (`view: 'compact'`). Detail fetches one
  * property by its residence id (the `/bostad/<id>` number).
  */
+import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';
