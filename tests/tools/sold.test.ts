@@ -52,9 +52,9 @@ describe('booli_search_sold', () => {
     await h.close();
   });
 
-  it('returns full raw records when compact is false', async () => {
+  it('returns full raw records on view:"full"', async () => {
     const { h } = await mount(route);
-    const res = await h.callTool('booli_search_sold', { area_id: '1', compact: false });
+    const res = await h.callTool('booli_search_sold', { area_id: '1', view: 'full' });
     const body = parseToolResult<{ sold: { soldDate: string }[] }>(res);
     expect(body.sold[0]!.soldDate).toBe('2026-07-13');
     await h.close();

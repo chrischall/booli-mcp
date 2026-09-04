@@ -1,3 +1,4 @@
+import { resolveView, viewParam } from '@chrischall/mcp-utils';
 /**
  * `booli_search_sold` — the sold-prices (slutpriser) surface, Booli's
  * signature comparables dataset.
@@ -12,14 +13,8 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';
 import { formatSold } from '../format.js';
-import { textResult } from '../mcp.js';
-import {
-  buildCommonFilters,
-  buildSearchInput,
-  commonSearchShape,
-  resolveAreaId,
-  type CommonSearchArgs,
-} from './_shared.js';
+import { minifiedResult } from '../mcp.js';
+import { BOOLI_VIEWS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
 import type { SearchFilter } from '../graphql.js';
 
 /** Sold-specific price + date filters. */
@@ -91,8 +86,8 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
       const filters = [...buildCommonFilters(args), ...soldFilters(args)];
       const input = buildSearchInput(areaId, filters, args);
       const { total_count, pages, sold } = await client.searchSold(input);
-      const compact = args.compact ?? true;
-      return textResult({
+      const compact = resolveView(args.view, BOOLI_VIEWS) === 'compact';
+      return minifiedResult({
         total_count,
         pages,
         page: input.page,

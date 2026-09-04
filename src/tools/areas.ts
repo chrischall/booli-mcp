@@ -7,7 +7,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';
 import { formatArea } from '../format.js';
-import { textResult } from '../mcp.js';
+import { minifiedResult } from '../mcp.js';
 
 export function registerAreaTools(server: McpServer, client: BooliClient): void {
   server.registerTool(
@@ -32,7 +32,7 @@ export function registerAreaTools(server: McpServer, client: BooliClient): void 
     async (args: { query: string; limit?: number }) => {
       const suggestions = await client.areaSuggestions(args.query);
       const limited = suggestions.slice(0, args.limit ?? 10);
-      return textResult({
+      return minifiedResult({
         count: limited.length,
         areas: limited.map(formatArea),
       });

@@ -1,23 +1,18 @@
+import { resolveView, viewParam } from '@chrischall/mcp-utils';
 /**
  * `booli_search_listings` + `booli_get_listing` — the for-sale surface.
  *
  * Search resolves the area, maps the shared + for-sale price filters onto
  * Booli's `searchForSale` input, and projects to the slim
- * {@link PropertySummary} by default (`compact`). Detail fetches one
+ * {@link PropertySummary} by default (`view: 'compact'`). Detail fetches one
  * property by its residence id (the `/bostad/<id>` number).
  */
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';
 import { formatDetail, formatListing } from '../format.js';
-import { textResult } from '../mcp.js';
-import {
-  buildCommonFilters,
-  buildSearchInput,
-  commonSearchShape,
-  resolveAreaId,
-  type CommonSearchArgs,
-} from './_shared.js';
+import { minifiedResult } from '../mcp.js';
+import { BOOLI_VIEWS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
 import type { SearchFilter } from '../graphql.js';
 
 /** For-sale price filters layered on top of the shared search shape. */
@@ -66,8 +61,8 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
 
       const input = buildSearchInput(areaId, filters, args);
       const { total_count, pages, listings } = await client.searchForSale(input);
-      const compact = args.compact ?? true;
-      return textResult({
+      const compact = resolveView(args.view, BOOLI_VIEWS) === 'compact';
+      return minifiedResult({
         total_count,
         pages,
         page: input.page,
@@ -96,24 +91,21 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
         residence_id: z
           .string()
           .describe('The property\'s residence id (e.g. "4370936" from /bostad/4370936).'),
-        compact: z
-          .boolean()
-          .optional()
-          .describe('Return a slim summary instead of the full raw record (default false).'),
+        view: viewParam(BOOLI_VIEWS, { note: 'compact returns the slim PropertySummary/detail projection; "full" returns Booli\'s whole GraphQL node.' }),
       },
     },
-    async (args: { residence_id: string; compact?: boolean }) => {
+    async (args: { residence_id: string; view?: string }) => {
       const node = await client.getProperty(args.residence_id);
       if (node == null) {
-        return textResult({
+        return minifiedResult({
           found: false,
           residence_id: args.residence_id,
           hint: 'No property with that residence id. Use the id from a /bostad/<id> URL or a search result\'s residence_id.',
         });
       }
-      return textResult({
+      return minifiedResult({
         found: true,
-        property: args.compact ? formatDetail(node) : node,
+        property: resolveView(args.view, BOOLI_VIEWS) === 'compact' ? formatDetail(node) : node,
       });
     },
   );

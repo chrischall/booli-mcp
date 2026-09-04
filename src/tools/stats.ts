@@ -9,7 +9,7 @@ import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';
 import { formatSold } from '../format.js';
 import { computeMarketStats } from '../stats.js';
-import { textResult } from '../mcp.js';
+import { minifiedResult } from '../mcp.js';
 import {
   buildCommonFilters,
   buildSearchInput,
@@ -40,7 +40,7 @@ export function registerStatsTools(server: McpServer, client: BooliClient): void
       const input = buildSearchInput(areaId, filters, args);
       const { total_count, sold } = await client.searchSold(input);
       const stats = computeMarketStats(sold.map(formatSold));
-      return textResult({ total_count, area_id: areaId, ...stats });
+      return minifiedResult({ total_count, area_id: areaId, ...stats });
     },
   );
 }

@@ -89,9 +89,9 @@ describe('booli_search_listings', () => {
     await h.close();
   });
 
-  it('returns full raw records when compact is false', async () => {
+  it('returns full raw records on view:"full"', async () => {
     const { h } = await mount(route);
-    const res = await h.callTool('booli_search_listings', { area_id: '76', compact: false });
+    const res = await h.callTool('booli_search_listings', { area_id: '76', view: 'full' });
     const body = parseToolResult<{ listings: { listSqmPrice: { raw: number } }[] }>(res);
     expect(body.listings[0]!.listSqmPrice.raw).toBe(54_167);
   });
@@ -107,9 +107,20 @@ describe('booli_get_listing', () => {
     expect(transport.calls[0]!.variables).toEqual({ residenceId: '4370936' });
   });
 
-  it('returns the raw node by default', async () => {
+  it('returns the slim projection by default — this tool used to default the other way', async () => {
+    // booli_get_listing was the one tool still opt-in (`args.compact` with no
+    // `?? true`), so a caller asking for a property by id got a whole raw
+    // GraphQL node without asking for one.
     const { h } = await mount(route);
     const res = await h.callTool('booli_get_listing', { residence_id: '4370936' });
+    const body = parseToolResult<{ property: Record<string, unknown> }>(res);
+    expect(body.property.__typename).toBeUndefined();
+    expect(body.property).toHaveProperty('residence_id');
+  });
+
+  it('returns the untouched node on view:"full"', async () => {
+    const { h } = await mount(route);
+    const res = await h.callTool('booli_get_listing', { residence_id: '4370936', view: 'full' });
     const body = parseToolResult<{ property: { __typename: string } }>(res);
     expect(body.property.__typename).toBe('Listing');
   });
