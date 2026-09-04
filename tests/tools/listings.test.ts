@@ -100,7 +100,7 @@ describe('booli_search_listings', () => {
 describe('booli_get_listing', () => {
   it('returns the compact detail when found', async () => {
     const { h, transport } = await mount(route);
-    const res = await h.callTool('booli_get_listing', { residence_id: '4370936', compact: true });
+    const res = await h.callTool('booli_get_listing', { residence_id: '4370936', view: 'compact' });
     const body = parseToolResult<{ found: boolean; property: { residence_id: string } }>(res);
     expect(body.found).toBe(true);
     expect(body.property.residence_id).toBe('4370936');
