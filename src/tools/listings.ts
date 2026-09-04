@@ -1,4 +1,4 @@
-import { resolveView, viewParam } from '@chrischall/mcp-utils';
+import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 /**
  * `booli_search_listings` + `booli_get_listing` — the for-sale surface.
  *
@@ -11,7 +11,6 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import type { BooliClient } from '../client.js';
 import { formatDetail, formatListing } from '../format.js';
-import { minifiedResult } from '../mcp.js';
 import { BOOLI_VIEWS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
 import type { SearchFilter } from '../graphql.js';
 
