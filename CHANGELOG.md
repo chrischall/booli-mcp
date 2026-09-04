@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.3.0](https://github.com/chrischall/booli-mcp/compare/v1.2.1...v1.3.0) (2026-09-04)
+
+
+### Features
+
+* **tools:** adopt the fleet `view` vocabulary, and fix the one opt-in tool ([#61](https://github.com/chrischall/booli-mcp/issues/61)) ([5fd9737](https://github.com/chrischall/booli-mcp/commit/5fd97375b638c4366ec53a3e3a6fae026aef0901))
+
+
+### Bug Fixes
+
+* **build:** restore the literal em dash in the package description ([#64](https://github.com/chrischall/booli-mcp/issues/64)) ([994b568](https://github.com/chrischall/booli-mcp/commit/994b568838fd717178aec1da65f4be06609d2adf))
+
+
+### Refactor
+
+* **imports:** drop the src/mcp.ts re-export seam ([#65](https://github.com/chrischall/booli-mcp/issues/65)) ([52e4f1e](https://github.com/chrischall/booli-mcp/commit/52e4f1e57df13c1feaa8bab932a5c87f77ff5c6a))
+
 ## [1.2.1](https://github.com/chrischall/booli-mcp/compare/v1.2.0...v1.2.1) (2026-09-02)
 
 
