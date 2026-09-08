@@ -46,7 +46,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@chrischall/mcp-utils": "^0.21.0",
+    "@chrischall/mcp-utils": "^0.23.3",
     "@fetchproxy/server": "^2.5.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "zod": "^4.4.3"
