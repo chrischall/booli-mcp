@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.2](https://github.com/chrischall/booli-mcp/compare/v1.3.1...v1.3.2) (2026-09-11)
+
+
+### Bug Fixes
+
+* **deps:** @fetchproxy/server 2.11.3, so the hosted extension pin persists ([#78](https://github.com/chrischall/booli-mcp/issues/78)) ([91e00ee](https://github.com/chrischall/booli-mcp/commit/91e00ee908badaeca976ca0bf01f7e9f62802c34))
+
 ## [1.3.1](https://github.com/chrischall/booli-mcp/compare/v1.3.0...v1.3.1) (2026-09-10)
 
 
