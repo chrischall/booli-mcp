@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.2](https://github.com/chrischall/booli-mcp/compare/v1.3.1...v1.3.2) (2026-09-14)
+
+
+### Bug Fixes
+
+* **deps:** @fetchproxy/server 2.11.3, so the hosted extension pin persists ([#78](https://github.com/chrischall/booli-mcp/issues/78)) ([91e00ee](https://github.com/chrischall/booli-mcp/commit/91e00ee908badaeca976ca0bf01f7e9f62802c34))
+* **deps:** @fetchproxy/server 3.0.0 — protocol v4 (forward secrecy, AAD over the frame) ([#82](https://github.com/chrischall/booli-mcp/issues/82)) ([8a0b05e](https://github.com/chrischall/booli-mcp/commit/8a0b05e567a1a0dc0007defe730bb597e25e6342))
+* **deps:** bump the production-dependencies group with 2 updates ([#81](https://github.com/chrischall/booli-mcp/issues/81)) ([52f748e](https://github.com/chrischall/booli-mcp/commit/52f748ebf4d2bed5ea0c9ad930771ee01e8eff57))
+
 ## [1.3.1](https://github.com/chrischall/booli-mcp/compare/v1.3.0...v1.3.1) (2026-09-10)
 
 
