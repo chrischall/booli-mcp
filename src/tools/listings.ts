@@ -8,7 +8,7 @@
  */
 import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatDetail, formatListing } from '../format.js';
 import { BOOLI_VIEWS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
@@ -44,7 +44,7 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
         readOnlyHint: true,
         openWorldHint: true,
       },
-      inputSchema: { ...commonSearchShape, ...listingPriceShape },
+      inputSchema: z.object({ ...commonSearchShape, ...listingPriceShape }),
     },
     async (args: ListingSearchArgs) => {
       const areaId = await resolveAreaId(client, args);
@@ -86,12 +86,12 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
         idempotentHint: true,
         openWorldHint: true,
       },
-      inputSchema: {
+      inputSchema: z.object({
         residence_id: z
           .string()
           .describe('The property\'s residence id (e.g. "4370936" from /bostad/4370936).'),
         view: viewParam(BOOLI_VIEWS, { note: 'compact returns the slim PropertySummary/detail projection; "full" returns Booli\'s whole GraphQL node.' }),
-      },
+      }),
     },
     async (args: { residence_id: string; view?: string }) => {
       const node = await client.getProperty(args.residence_id);

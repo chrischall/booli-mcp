@@ -5,7 +5,7 @@
  * {@link computeMarketStats}, rather than returning the individual rows.
  * Always reports `sample_size` — treat a thin sample's median with care.
  */
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatSold } from '../format.js';
 import { computeMarketStats } from '../stats.js';
@@ -15,7 +15,7 @@ import {
   buildSearchInput,
   resolveAreaId,
 } from './_shared.js';
-import { soldFilters, soldSearchShape, type SoldSearchArgs } from './sold.js';
+import { soldFilters, soldSearchSchema, type SoldSearchArgs } from './sold.js';
 
 export function registerStatsTools(server: McpServer, client: BooliClient): void {
   server.registerTool(
@@ -32,7 +32,7 @@ export function registerStatsTools(server: McpServer, client: BooliClient): void
         readOnlyHint: true,
         openWorldHint: true,
       },
-      inputSchema: soldSearchShape,
+      inputSchema: soldSearchSchema,
     },
     async (args: SoldSearchArgs) => {
       const areaId = await resolveAreaId(client, args);
