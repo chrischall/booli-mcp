@@ -4,7 +4,7 @@
  * name → area id → pass into the search tools.
  */
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatArea } from '../format.js';
 import { minifiedResult } from '@chrischall/mcp-utils';
@@ -24,10 +24,10 @@ export function registerAreaTools(server: McpServer, client: BooliClient): void 
         idempotentHint: true,
         openWorldHint: true,
       },
-      inputSchema: {
+      inputSchema: z.object({
         query: z.string().describe('Place-name search string (e.g. "Nacka", "Södermalm").'),
         limit: z.number().int().min(1).max(50).optional().describe('Max results (default 10).'),
-      },
+      }),
     },
     async (args: { query: string; limit?: number }) => {
       const suggestions = await client.areaSuggestions(args.query);

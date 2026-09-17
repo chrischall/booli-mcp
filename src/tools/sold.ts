@@ -10,7 +10,7 @@
  */
 import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 import { z } from 'zod';
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatSold } from '../format.js';
 import { BOOLI_VIEWS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
@@ -61,7 +61,7 @@ export function soldFilters(args: SoldSearchArgs): SearchFilter[] {
   return filters;
 }
 
-export const soldSearchShape = { ...commonSearchShape, ...soldFilterShape };
+export const soldSearchSchema = z.object({ ...commonSearchShape, ...soldFilterShape });
 
 export function registerSoldTools(server: McpServer, client: BooliClient): void {
   server.registerTool(
@@ -78,7 +78,7 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
         readOnlyHint: true,
         openWorldHint: true,
       },
-      inputSchema: soldSearchShape,
+      inputSchema: soldSearchSchema,
     },
     async (args: SoldSearchArgs) => {
       const areaId = await resolveAreaId(client, args);

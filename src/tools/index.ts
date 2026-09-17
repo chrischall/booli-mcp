@@ -4,7 +4,7 @@
  * all. src/index.ts wires this to the running server, and tool tests can
  * mount individual registrars against a harness.
  */
-import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { registerAreaTools } from './areas.js';
 import { registerListingTools } from './listings.js';
