@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/chrischall/booli-mcp/compare/v1.3.3...v2.0.0) (2026-09-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* **mcp:** migrate server to SDK v2 ([#86](https://github.com/chrischall/booli-mcp/issues/86))
+
+### Features
+
+* **mcp:** migrate server to SDK v2 ([#86](https://github.com/chrischall/booli-mcp/issues/86)) ([4fa52a6](https://github.com/chrischall/booli-mcp/commit/4fa52a67902f0498f62de93cd30e9f58ab0dd04a))
+
+
+### Bug Fixes
+
+* **build:** preserve Zod initialization in standalone bundle ([#88](https://github.com/chrischall/booli-mcp/issues/88)) ([04fc3e3](https://github.com/chrischall/booli-mcp/commit/04fc3e3a3ed49d6ddc5abd995c746098af9b6dd4))
+
 ## [1.3.3](https://github.com/chrischall/booli-mcp/compare/v1.3.2...v1.3.3) (2026-09-15)
 
 
