@@ -38,7 +38,7 @@
   ],
   "scripts": {
     "build": "tsc && npm run bundle",
-    "bundle": "esbuild src/index.ts --bundle --platform=node --format=esm --banner:js='import { createRequire as __createRequire } from \"module\"; const require = __createRequire(import.meta.url);' --outfile=dist/bundle.js",
+    "bundle": "esbuild src/index.ts --bundle --alias:zod/v4=./node_modules/zod/v4/index.cjs --platform=node --format=esm --banner:js='import { createRequire as __createRequire } from \"module\"; const require = __createRequire(import.meta.url);' --outfile=dist/bundle.js",
     "dev": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "npm run typecheck && vitest run",
