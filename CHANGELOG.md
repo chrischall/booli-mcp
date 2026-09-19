@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/chrischall/booli-mcp/compare/v2.0.0...v2.1.0) (2026-09-19)
+
+
+### Features
+
+* **deps:** take mcp-utils 1.0.0, so server/discover works again ([#89](https://github.com/chrischall/booli-mcp/issues/89)) ([cf488ca](https://github.com/chrischall/booli-mcp/commit/cf488ca7d449bccafb5700c13607f50c386b875a))
+
 ## [2.0.0](https://github.com/chrischall/booli-mcp/compare/v1.3.3...v2.0.0) (2026-09-17)
 
 
