@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.1](https://github.com/chrischall/booli-mcp/compare/v2.1.0...v2.1.1) (2026-09-21)
+
+
+### Bug Fixes
+
+* **deps:** bump zod in the production-dependencies group ([#93](https://github.com/chrischall/booli-mcp/issues/93)) ([a66a2b2](https://github.com/chrischall/booli-mcp/commit/a66a2b2dcba3985c6979489849a0f9ceb3fee462))
+
 ## [2.1.0](https://github.com/chrischall/booli-mcp/compare/v2.0.0...v2.1.0) (2026-09-19)
 
 
