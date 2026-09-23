@@ -49,7 +49,7 @@
     "@chrischall/mcp-utils": "^2.4.0",
     "@fetchproxy/server": "^3.2.0",
     "@modelcontextprotocol/server": "^2.0.0",
-    "zod": "^4.6.2"
+    "zod": "^4.6.5"
   },
   "devDependencies": {
     "@modelcontextprotocol/client": "^2.0.0",
