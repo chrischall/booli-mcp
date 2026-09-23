@@ -3,7 +3,7 @@ import {
   FallbackTransport,
   createDefaultTransport,
 } from '../src/transport-fallback.js';
-import { CloudflareChallengeError } from '../src/transport-direct.js';
+import { CloudflareChallengeError, DirectTransport } from '../src/transport-direct.js';
 import type { BooliTransport, GraphQLResponse, TransportStatus } from '../src/transport.js';
 import type { BridgeHealthcheckTransport } from '@chrischall/mcp-utils/fetchproxy';
 import { fakeBridgeHealth } from './helpers.js';
@@ -39,6 +39,20 @@ describe('FallbackTransport', () => {
     expect(factory).toHaveBeenCalledOnce();
     expect(bridge.graphql).toHaveBeenCalledTimes(2);
     expect(stderr).toHaveBeenCalledWith(expect.stringContaining('Cloudflare'));
+    stderr.mockRestore();
+  });
+
+  it('falls back when the real direct transport meets a 503 challenge page', async () => {
+    const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const res = {
+      ok: false,
+      status: 503,
+      async text() { return '<html><title>Just a moment...</title></html>'; },
+      headers: { get: () => null },
+    } as unknown as Response;
+    const direct = new DirectTransport({ fetchImpl: (async () => res) as unknown as typeof fetch });
+    const t = new FallbackTransport(direct, () => transportReturning({ via: 'bridge' }));
+    expect(await t.graphql('q', {})).toEqual({ data: { via: 'bridge' } });
     stderr.mockRestore();
   });
 
