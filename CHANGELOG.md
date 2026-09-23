@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.1.2](https://github.com/chrischall/booli-mcp/compare/v2.1.1...v2.1.2) (2026-09-23)
+
+
+### Bug Fixes
+
+* **deps:** require zod ^4.6.5 to match @chrischall/mcp-utils 2.4.0 ([#97](https://github.com/chrischall/booli-mcp/issues/97)) ([3098719](https://github.com/chrischall/booli-mcp/commit/3098719d9a6c1d1bba0b6c965885f8bbc6e45bc5))
+* **deps:** upgrade @chrischall/mcp-utils to 2.4.0 and @fetchproxy/* to 3.2.0 ([#95](https://github.com/chrischall/booli-mcp/issues/95)) ([b4a932d](https://github.com/chrischall/booli-mcp/commit/b4a932d79fc4da57ba321504ba6af50b21632b1b))
+
 ## [2.1.1](https://github.com/chrischall/booli-mcp/compare/v2.1.0...v2.1.1) (2026-09-21)
 
 
