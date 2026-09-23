@@ -81,6 +81,17 @@ export interface FetchproxyTransportOptions {
   createServer?: (opts: FetchproxyServerOpts) => FetchproxyServer;
 }
 
+/**
+ * True when a GraphQL document may contain a `mutation` operation.
+ * Deliberately conservative: any `mutation` token anywhere (even a field
+ * name or a second operation in a multi-op document) counts, so the
+ * error is always toward NOT retrying — a skipped retry is a visible
+ * timeout, a wrong retry is a duplicated write.
+ */
+export function isMutation(query: string): boolean {
+  return /\bmutation\b/.test(query);
+}
+
 export class BooliFetchproxyTransport implements BooliTransport {
   private readonly bridge: BooliBridge;
   private startPromise: Promise<void> | undefined;
@@ -149,6 +160,10 @@ export class BooliFetchproxyTransport implements BooliTransport {
           accept: 'application/json',
         },
         body: JSON.stringify({ query, variables }),
+        // fetchproxy 3.2 no longer re-sends a POST after a transport
+        // timeout. Every Booli operation is a read-only GraphQL query, so
+        // keep the cold-start retry for queries — but never for a mutation.
+        retryOnTimeout: !isMutation(query),
       });
     } catch (err) {
       // Bridge-layer failures (extension down, pairing pending, timeout)

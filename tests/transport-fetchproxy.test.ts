@@ -38,6 +38,27 @@ describe('BooliFetchproxyTransport', () => {
     expect(JSON.parse(init.body!)).toEqual({ query: 'query X { x }', variables: { a: 1 } });
   });
 
+  it('opts read-only GraphQL queries into retryOnTimeout (fetchproxy 3.2 no longer retries POST by default)', async () => {
+    const bridge = fakeBridge();
+    const t = new BooliFetchproxyTransport({ bridge });
+    await t.graphql('query SearchForSale($input: SearchRequest) { x }', {});
+    await t.graphql('  query AreaSuggestions { x }', {});
+    await t.graphql('{ x }', {}); // anonymous shorthand is a query too
+    for (const [init] of vi.mocked(bridge.fetch).mock.calls) {
+      expect(init.retryOnTimeout).toBe(true);
+    }
+  });
+
+  it('never marks a GraphQL mutation retry-safe', async () => {
+    const bridge = fakeBridge();
+    const t = new BooliFetchproxyTransport({ bridge });
+    await t.graphql('mutation SaveSearch($x: ID!) { save(id: $x) }', {});
+    await t.graphql('\n  # comment\n  mutation Y { y }', {});
+    for (const [init] of vi.mocked(bridge.fetch).mock.calls) {
+      expect(init.retryOnTimeout).not.toBe(true);
+    }
+  });
+
   it('starts the bridge only once across calls', async () => {
     const bridge = fakeBridge();
     const t = new BooliFetchproxyTransport({ bridge });
