@@ -57,7 +57,8 @@ hit for you.
   **sold date**, and **over/under-asking %**. Same scope/filters as the
   for-sale search, plus `min_sold_price`/`max_sold_price`,
   `min_sold_sqm_price`/`max_sold_sqm_price`, and `min_sold_date`/`max_sold_date`
-  (YYYYMMDD).
+  (YYYYMMDD). `sort` also accepts `soldDate`/`soldPrice`; the default is
+  `soldDate` descending (most recent sales first), as for `booli_market_stats`.
 - `booli_market_stats` — median/average sold price, price per m², and
   average over/under-asking % for an area (same filters as the sold
   search, over one page). Check `sample_size` before trusting a thin median.

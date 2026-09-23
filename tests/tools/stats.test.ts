@@ -40,4 +40,14 @@ describe('booli_market_stats', () => {
     expect(body.sample_size).toBe(0);
     await h.close();
   });
+
+  it('samples the most recent sales by default (soldDate descending)', async () => {
+    const { h, transport } = await mount(() => ({
+      data: { searchSold: { totalCount: 1, pages: 1, result: [SOLD] } },
+    }));
+    await h.callTool('booli_market_stats', { area_id: '76' });
+    const input = transport.calls[0]!.variables.input as { sort: string; ascending: boolean };
+    expect(input).toMatchObject({ sort: 'soldDate', ascending: false });
+    await h.close();
+  });
 });

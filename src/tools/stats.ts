@@ -15,7 +15,7 @@ import {
   buildSearchInput,
   resolveAreaId,
 } from './_shared.js';
-import { soldFilters, soldSearchSchema, type SoldSearchArgs } from './sold.js';
+import { SOLD_DEFAULT_SORT, soldFilters, soldSearchSchema, type SoldSearchArgs } from './sold.js';
 
 export function registerStatsTools(server: McpServer, client: BooliClient): void {
   server.registerTool(
@@ -37,7 +37,7 @@ export function registerStatsTools(server: McpServer, client: BooliClient): void
     async (args: SoldSearchArgs) => {
       const areaId = await resolveAreaId(client, args);
       const filters = [...buildCommonFilters(args), ...soldFilters(args)];
-      const input = buildSearchInput(areaId, filters, args);
+      const input = buildSearchInput(areaId, filters, args, SOLD_DEFAULT_SORT);
       const { total_count, sold } = await client.searchSold(input);
       const stats = computeMarketStats(sold.map(formatSold));
       return minifiedResult({ total_count, area_id: areaId, ...stats });

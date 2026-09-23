@@ -67,4 +67,23 @@ describe('booli_search_sold', () => {
     expect(input.filters).toContainEqual({ key: 'isNewConstruction', value: '0' });
     await h.close();
   });
+
+  it('accepts the sold-only sort keys soldDate and soldPrice', async () => {
+    for (const sort of ['soldDate', 'soldPrice']) {
+      const { h, transport } = await mount(route);
+      const res = await h.callTool('booli_search_sold', { area_id: '1', sort, ascending: true });
+      expect(res.isError).toBeFalsy();
+      const input = transport.calls[0]!.variables.input as { sort: string; ascending: boolean };
+      expect(input).toMatchObject({ sort, ascending: true });
+      await h.close();
+    }
+  });
+
+  it('defaults to the most recent sales first (soldDate descending)', async () => {
+    const { h, transport } = await mount(route);
+    await h.callTool('booli_search_sold', { area_id: '1' });
+    const input = transport.calls[0]!.variables.input as { sort: string; ascending: boolean };
+    expect(input).toMatchObject({ sort: 'soldDate', ascending: false });
+    await h.close();
+  });
 });
