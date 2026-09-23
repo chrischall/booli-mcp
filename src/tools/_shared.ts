@@ -37,7 +37,7 @@ export const OBJECT_TYPES = [
   'Tomt/Mark',
 ] as const;
 
-/** Sort keys accepted by both searches (direction via `ascending`). */
+/** Sort keys accepted by the for-sale search (direction via `ascending`). */
 export const SORT_KEYS = [
   'published',
   'listPrice',
@@ -47,6 +47,12 @@ export const SORT_KEYS = [
   'rent',
   'plotArea',
 ] as const;
+
+/**
+ * Sort keys accepted by the sold search: the listing keys plus the
+ * sold-only `soldDate` / `soldPrice` (docs/BOOLI-API.md, "Sort keys").
+ */
+export const SOLD_SORT_KEYS = [...SORT_KEYS, 'soldDate', 'soldPrice'] as const;
 
 /** The geo + shared-filter raw-shape reused by both search tools. */
 export const commonSearchShape = {
@@ -159,6 +165,7 @@ export function buildSearchInput(
   areaId: string,
   filters: SearchFilter[],
   args: CommonSearchArgs,
+  defaultSort = '',
 ): SearchRequestInput {
   return {
     areaId,
@@ -167,6 +174,6 @@ export function buildSearchInput(
     excludeAncestors: true,
     facets: [],
     filters,
-    sort: args.sort ?? '',
+    sort: args.sort ?? defaultSort,
   };
 }

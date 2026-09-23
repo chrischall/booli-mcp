@@ -57,34 +57,45 @@ export class CloudflareChallengeError extends HardHttpError {}
  * script / "Just a moment" title in the body. Do NOT match
  * `challenges.cloudflare.com` — Cloudflare inlines that on cleared pages.
  */
-function isCloudflareChallenge(res: Response, bodyHead: string): boolean {
+function isCloudflareChallenge(res: Response, body: string): boolean {
   return (
     res.headers.get('cf-mitigated') === 'challenge' ||
-    bodyHead.includes('_cf_chl_opt') ||
-    bodyHead.includes('<title>Just a moment')
+    body.includes('_cf_chl_opt') ||
+    body.includes('<title>Just a moment')
   );
 }
 
-/** Build the diagnostic error for a non-retryable HTTP failure. */
-async function hardHttpError(res: Response): Promise<HardHttpError> {
-  let bodyHead = '';
+/** Read the body for diagnostics; best-effort (the status alone still tells the story). */
+async function readBodySafely(res: Response): Promise<string> {
   try {
-    bodyHead = (await res.text()).slice(0, 200);
+    return await res.text();
   } catch {
-    // Diagnostics are best-effort; the status alone still tells the story.
+    return '';
   }
-  const diag = ['server', 'cf-ray', 'cf-mitigated']
+}
+
+/** `server` / `cf-ray` / `cf-mitigated` headers, for error messages. */
+function diagnostics(res: Response): string {
+  return ['server', 'cf-ray', 'cf-mitigated']
     .map((name) => ({ name, value: res.headers.get(name) }))
     .filter((h) => h.value)
     .map((h) => `${h.name}: ${h.value}`)
     .join('; ');
-  if (isCloudflareChallenge(res, bodyHead)) {
-    return new CloudflareChallengeError(
-      `Booli GraphQL HTTP ${res.status} — Cloudflare bot challenge` +
-        `${diag ? ` (${diag})` : ''}. Booli challenges non-browser clients; ` +
-        'requests must ride a real browser session (fetchproxy bridge).',
-    );
-  }
+}
+
+/** The typed challenge error the fallback transport switches on. */
+function challengeError(res: Response): CloudflareChallengeError {
+  const diag = diagnostics(res);
+  return new CloudflareChallengeError(
+    `Booli GraphQL HTTP ${res.status} — Cloudflare bot challenge` +
+      `${diag ? ` (${diag})` : ''}. Booli challenges non-browser clients; ` +
+      'requests must ride a real browser session (fetchproxy bridge).',
+  );
+}
+
+/** Build the diagnostic error for a non-retryable, non-challenge HTTP failure. */
+function hardHttpError(res: Response, bodyHead: string): HardHttpError {
+  const diag = diagnostics(res);
   return new HardHttpError(
     `Booli GraphQL HTTP ${res.status}${diag ? ` (${diag})` : ''}` +
       `${bodyHead ? ` — body starts: ${bodyHead}` : ''}`,
@@ -140,10 +151,27 @@ export class DirectTransport implements BooliTransport {
         });
 
         if (res.ok) {
-          return (await res.json()) as GraphQLResponse<T>;
+          // Read as text and parse ourselves: a 2xx HTML page (Cloudflare
+          // interstitial, error page) must not surface as a bare SyntaxError
+          // or be retried as if it were a network blip.
+          const text = await res.text();
+          try {
+            return JSON.parse(text) as GraphQLResponse<T>;
+          } catch {
+            if (isCloudflareChallenge(res, text)) throw challengeError(res);
+            throw new HardHttpError(
+              `Booli GraphQL HTTP ${res.status} returned non-JSON — body starts: ${text.slice(0, 200)}`,
+            );
+          }
         }
+        // Check for a challenge on EVERY non-OK status before deciding to
+        // retry: Cloudflare serves rate-limit blocks as 429 and the legacy
+        // JS challenge as 503, and retrying those only delays the fallback.
+        // Reading the body here also drains it on the retry path.
+        const errBody = await readBodySafely(res);
+        if (isCloudflareChallenge(res, errBody)) throw challengeError(res);
         if (!RETRYABLE_STATUS.has(res.status)) {
-          throw await hardHttpError(res);
+          throw hardHttpError(res, errBody.slice(0, 200));
         }
         lastError = new Error(`Booli GraphQL HTTP ${res.status}`);
       } catch (err) {

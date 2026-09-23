@@ -133,4 +133,12 @@ describe('booli_get_listing', () => {
     expect(body.hint).toMatch(/residence id/);
     await h.close();
   });
+
+  it('rejects the sold-only sort keys on the for-sale search', async () => {
+    const { h, transport } = await mount(route);
+    const res = await h.callTool('booli_search_listings', { area_id: '1', sort: 'soldDate' });
+    expect(res.isError).toBe(true);
+    expect(transport.calls).toHaveLength(0);
+    await h.close();
+  });
 });

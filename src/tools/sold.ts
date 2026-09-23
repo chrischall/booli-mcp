@@ -13,7 +13,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatSold } from '../format.js';
-import { BOOLI_VIEWS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
+import { BOOLI_VIEWS, SOLD_SORT_KEYS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
 import type { SearchFilter } from '../graphql.js';
 
 /** Sold-specific price + date filters. */
@@ -32,7 +32,18 @@ const soldFilterShape = {
     .regex(/^\d{8}$/)
     .optional()
     .describe('Latest sold date, YYYYMMDD.'),
+  sort: z
+    .enum(SOLD_SORT_KEYS)
+    .optional()
+    .describe('Sort key (default: soldDate — most recent sales first with ascending false).'),
 };
+
+/**
+ * Sold searches default to the most recent sales, not Booli's `""` default
+ * (listing publication date) — the latest comparables are what a sold
+ * search or a one-page market-stats sample should be built from.
+ */
+export const SOLD_DEFAULT_SORT = 'soldDate';
 
 export interface SoldSearchArgs extends CommonSearchArgs {
   min_sold_price?: number;
@@ -83,7 +94,7 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
     async (args: SoldSearchArgs) => {
       const areaId = await resolveAreaId(client, args);
       const filters = [...buildCommonFilters(args), ...soldFilters(args)];
-      const input = buildSearchInput(areaId, filters, args);
+      const input = buildSearchInput(areaId, filters, args, SOLD_DEFAULT_SORT);
       const { total_count, pages, sold } = await client.searchSold(input);
       const compact = resolveView(args.view, BOOLI_VIEWS) === 'compact';
       return minifiedResult({

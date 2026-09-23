@@ -82,6 +82,45 @@ describe('DirectTransport.graphql', () => {
     await expect(t.graphql('q', {})).rejects.toThrow(/HTTP 404/);
   });
 
+  it('treats a 503 Cloudflare challenge as a challenge without retrying', async () => {
+    const { impl, calls } = stubFetch([
+      { ok: false, status: 503, text: '<html><title>Just a moment...</title>', headers: { 'cf-mitigated': 'challenge' } },
+      { body: { data: { ok: 1 } } },
+    ]);
+    const t = new DirectTransport({ fetchImpl: impl });
+    await expect(t.graphql('q', {})).rejects.toBeInstanceOf(CloudflareChallengeError);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('treats a 429 carrying cf-mitigated: challenge as a challenge', async () => {
+    const { impl, calls } = stubFetch([
+      { ok: false, status: 429, text: 'rate limited', headers: { 'cf-mitigated': 'challenge' } },
+    ]);
+    const t = new DirectTransport({ fetchImpl: impl });
+    await expect(t.graphql('q', {})).rejects.toBeInstanceOf(CloudflareChallengeError);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('treats a 200 interstitial HTML page as a challenge, not a SyntaxError', async () => {
+    const { impl, calls } = stubFetch([
+      { ok: true, status: 200, text: '<!DOCTYPE html><script>window._cf_chl_opt={}</script>' },
+    ]);
+    const t = new DirectTransport({ fetchImpl: impl });
+    await expect(t.graphql('q', {})).rejects.toBeInstanceOf(CloudflareChallengeError);
+    expect(calls).toHaveLength(1);
+  });
+
+  it('surfaces a non-challenge non-JSON 2xx as a descriptive error without retrying', async () => {
+    const { impl, calls } = stubFetch([{ ok: true, status: 200, text: '<html>maintenance</html>' }]);
+    const t = new DirectTransport({ fetchImpl: impl });
+    const err = await t.graphql('q', {}).catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(Error);
+    expect(err).not.toBeInstanceOf(CloudflareChallengeError);
+    expect(err).not.toBeInstanceOf(SyntaxError);
+    expect((err as Error).message).toMatch(/non-JSON.*maintenance/s);
+    expect(calls).toHaveLength(1);
+  });
+
   it('retries a retryable 5xx then succeeds', async () => {
     const { impl, calls } = stubFetch([
       { ok: false, status: 503, text: 'busy' },
