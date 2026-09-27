@@ -1,7 +1,7 @@
 /**
  * Browser-bridge Booli transport: each GraphQL POST runs as a same-origin
  * fetch inside the user's own www.booli.se tab via the fetchproxy bridge
- * (`@fetchproxy/server` + the Transporter extension).
+ * (`@fetchproxy/server` + the ContextMint Bridge extension).
  *
  * Why this exists: Booli fronts www.booli.se — including `/graphql` — with
  * a Cloudflare managed challenge that rejects every non-browser client
@@ -46,7 +46,7 @@ export class BridgeHttpStatusError extends Error {
 
 /**
  * The whole fetchproxy fleet shares ONE concentrator port — the
- * Transporter extension dials it, and servers host/peer-elect on it.
+ * ContextMint Bridge extension dials it, and servers host/peer-elect on it.
  * Never default to a "unique" port; override only for test isolation.
  */
 const DEFAULT_WS_PORT = 37_149;

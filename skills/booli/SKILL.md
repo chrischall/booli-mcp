@@ -16,11 +16,13 @@ API. Money is in **SEK**, areas in **m²**, rooms as a number.
 
 booli.se is behind a Cloudflare bot wall that blocks server-side requests,
 so booli-mcp routes each query through **your own signed-in www.booli.se
-browser tab** via the fetchproxy bridge (the Transporter extension). No
+browser tab** via the fetchproxy bridge (the ContextMint Bridge extension). No
 Booli login is needed — just a normal, Cloudflare-cleared page view.
 
-- Keep a **www.booli.se** tab open in the browser running the Transporter
-  extension. On the first request, approve the one-time pairing prompt.
+- Install ContextMint Bridge from https://github.com/nullnet-app/contextmint-bridge/releases
+  (Chrome: load the chrome zip unpacked; Safari: ships inside the ContextMint
+  app) and keep a **www.booli.se** tab open in that browser. On the first
+  request, approve the one-time pairing prompt.
 - `BOOLI_TRANSPORT` picks the path: `auto` (default — tries a direct fetch
   first, falls back to the bridge when walled), `fetchproxy` (always the
   bridge), `direct` (fail if walled). The fleet shares WS port **37149**

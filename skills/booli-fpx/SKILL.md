@@ -13,7 +13,7 @@ description: >-
 
 Booli fronts `www.booli.se` — including `/graphql` — with a Cloudflare managed
 challenge that 403s any plain `curl`/Node request. `fpx` routes the request
-through the user's own signed-in browser tab (the Transporter extension),
+through the user's own signed-in browser tab (the ContextMint Bridge extension),
 which has already cleared the challenge, so the same anonymous GraphQL query
 succeeds. No Booli login is needed — just a normal open tab.
 
@@ -26,10 +26,12 @@ server.
 ```sh
 npm install -g @fetchproxy/cli           # provides `fpx`
 fpx profile add booli --domain booli.se  # only the fetch capability is needed
-fpx pair -p booli                        # prints a pair code → approve in Transporter
+fpx pair -p booli                        # prints a pair code → approve in ContextMint Bridge
 ```
 
-Requirements: the **Transporter** browser extension installed, with an open
+Requirements: the **ContextMint Bridge** browser extension installed (from
+https://github.com/nullnet-app/contextmint-bridge/releases — Chrome: load the chrome zip
+unpacked; Safari: ships inside the ContextMint app), with an open
 `www.booli.se` tab, and its Chrome **Site access** allowing `booli.se`.
 Pairing persists — after the first approval every later `fpx` call reuses it.
 

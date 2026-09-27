@@ -5,6 +5,7 @@ import {
   type BridgeHealth,
   type BridgeHealthcheckTransport,
 } from '@chrischall/mcp-utils/fetchproxy';
+import { FetchproxyCapabilityUnavailableError } from '@fetchproxy/server';
 import { createTestHarness, parseToolResult, fakeBridgeHealth } from '../helpers.js';
 import { BooliClient } from '../../src/client.js';
 import { registerHealthcheckTools } from '../../src/tools/healthcheck.js';
@@ -78,7 +79,7 @@ describe('booli_healthcheck on the direct path', () => {
     expect(body.error?.message).toMatch(/Cloudflare bot challenge/);
     expect(body.hint).toMatch(/BOOLI_TRANSPORT=fetchproxy/);
     expect(body.hint).toMatch(/www\.booli\.se tab open \(no login needed\)/);
-    expect(body.hint).toMatch(/Transporter pairing prompt/);
+    expect(body.hint).toMatch(/ContextMint Bridge pairing prompt/);
   });
 
   it('gives a Booli-specific hint on a non-challenge direct failure', async () => {
@@ -229,5 +230,24 @@ describe('booli_healthcheck on the browser bridge', () => {
     });
     expect(body.error?.kind).toBe('bridge_down');
     expect(body.hint).toMatch(/service worker/);
+  });
+
+  it('classifies a capability-unavailable cause as the browser, not the MCP', async () => {
+    const body = await call({
+      async graphql<T>(): Promise<T> {
+        throw new Error('Booli bridge: capability unavailable', {
+          cause: new FetchproxyCapabilityUnavailableError(
+            'capability "fetch" is not available in this browser (safari)',
+            { capability: 'fetch', platform: 'safari' },
+          ),
+        });
+      },
+      status: () => ON_BRIDGE,
+      bridgeTransport: () => fakeBridgeTransport(),
+    });
+    expect(body.ok).toBe(false);
+    expect(body.error?.kind).toBe('capability_unavailable');
+    expect(body.hint).toMatch(/this browser \(safari\) cannot serve the "fetch" capability/);
+    expect(body.hint).toMatch(/Nothing is wrong with the MCP's code/);
   });
 });

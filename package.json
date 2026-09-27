@@ -47,7 +47,7 @@
   },
   "dependencies": {
     "@chrischall/mcp-utils": "^2.4.0",
-    "@fetchproxy/server": "^3.2.0",
+    "@fetchproxy/server": "^3.4.0",
     "@modelcontextprotocol/server": "^2.0.0",
     "zod": "^4.6.5"
   },
