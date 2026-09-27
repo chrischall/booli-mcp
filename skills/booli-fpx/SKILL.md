@@ -31,8 +31,10 @@ fpx pair -p booli                        # prints a pair code → approve in Con
 
 Requirements: the **ContextMint Bridge** browser extension installed (from
 https://github.com/nullnet-app/contextmint-bridge/releases — Chrome: load the chrome zip
-unpacked; Safari: ships inside the ContextMint app), with an open
+unpacked; Safari isn't available yet — use Chrome for now), with an open
 `www.booli.se` tab, and its Chrome **Site access** allowing `booli.se`.
+ContextMint Bridge is the fetchproxy extension renamed, same maintainer; source at
+https://github.com/nullnet-app/contextmint-bridge (build it, or verify a release zip with its published `.sha256`).
 Pairing persists — after the first approval every later `fpx` call reuses it.
 
 ## Core call

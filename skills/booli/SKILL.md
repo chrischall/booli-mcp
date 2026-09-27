@@ -20,9 +20,12 @@ browser tab** via the fetchproxy bridge (the ContextMint Bridge extension). No
 Booli login is needed — just a normal, Cloudflare-cleared page view.
 
 - Install ContextMint Bridge from https://github.com/nullnet-app/contextmint-bridge/releases
-  (Chrome: load the chrome zip unpacked; Safari: ships inside the ContextMint
-  app) and keep a **www.booli.se** tab open in that browser. On the first
-  request, approve the one-time pairing prompt.
+  (Chrome: load the chrome zip unpacked; Safari isn't available yet — use
+  Chrome for now) and keep a **www.booli.se** tab open in that browser. On the
+  first request, approve the one-time pairing prompt. It's the fetchproxy
+  extension renamed, same maintainer; source at
+  https://github.com/nullnet-app/contextmint-bridge (build it, or verify a
+  release zip with its published `.sha256`).
 - `BOOLI_TRANSPORT` picks the path: `auto` (default — tries a direct fetch
   first, falls back to the bridge when walled), `fetchproxy` (always the
   bridge), `direct` (fail if walled). The fleet shares WS port **37149**
