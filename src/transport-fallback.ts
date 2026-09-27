@@ -46,7 +46,7 @@ export class FallbackTransport implements BooliTransport {
           '[booli-mcp] Direct fetch got a Cloudflare challenge — switching to ' +
             'the fetchproxy browser bridge for the rest of this session. Keep a ' +
             'www.booli.se tab open (no login needed) and approve the pairing ' +
-            'prompt in the Transporter extension if one appears.',
+            'prompt in the ContextMint Bridge extension if one appears.',
         );
       }
     }

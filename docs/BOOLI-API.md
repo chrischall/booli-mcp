@@ -17,7 +17,7 @@ envelope.
 Cloudflare fingerprints the client itself, so no header/cookie replay durably clears
 it. The identical query returns 200 from a `fetch` **inside a real browser tab**. So
 requests ride the user's own signed-in (Cloudflare-cleared) `www.booli.se` tab via
-the fetchproxy bridge (`@fetchproxy/server` + Transporter extension). No Booli login
+the fetchproxy bridge (`@fetchproxy/server` + ContextMint Bridge extension). No Booli login
 needed — just a cleared Cloudflare session (any normal page view). Introspection is
 disabled (500). Verified live 2026-07-13.
 

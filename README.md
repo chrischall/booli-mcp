@@ -12,8 +12,8 @@ resolve areas, and compute market statistics, all from Claude.
 Booli fronts www.booli.se — including its GraphQL API — with a Cloudflare
 bot wall that blocks server-side clients. booli-mcp therefore reads Booli's
 consumer GraphQL API by routing each query through **your own signed-in
-www.booli.se browser tab** via the fetchproxy bridge (the Transporter
-extension), reusing your Cloudflare-cleared session. No
+www.booli.se browser tab** via the fetchproxy bridge (the ContextMint Bridge
+browser extension), reusing your Cloudflare-cleared session. No
 Booli login is required — just a normal page view. All tools are read-only.
 
 `BOOLI_TRANSPORT` selects the path: `auto` (default — direct fetch first,
@@ -22,13 +22,17 @@ browser-bridge fallback when walled), `fetchproxy` (always the bridge), or
 
 ## Setup
 
-1. Install the Transporter (fetchproxy) browser extension and keep a
+1. Install **ContextMint Bridge** from its
+   [releases page](https://github.com/nullnet-app/contextmint-bridge/releases) — Chrome: download
+   the chrome zip, unzip it, and load it unpacked at `chrome://extensions`
+   (Developer mode); Safari: it ships inside the ContextMint app. Keep a
    **www.booli.se** tab open.
-2. On the first request, approve the one-time pairing prompt in Transporter.
+2. On the first request, approve the one-time pairing prompt in ContextMint
+   Bridge.
 3. Run `booli_healthcheck` to confirm the path is working. Its `transport`
    field says which leg served the probe (`direct` or `fetchproxy`) and,
    once the bridge exists, `bridge.session_state` says whether the
-   Transporter extension is `linked`, `pair_pending` (approve the pair code
+   extension is `linked`, `pair_pending` (approve the pair code
    it names), or `extension_disconnected`.
 
 ## Install

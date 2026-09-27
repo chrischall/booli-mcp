@@ -16,7 +16,7 @@ every non-browser client (Node/curl), and Cloudflare fingerprints the HTTP
 client itself, so no header/cookie replay durably clears it. The identical
 query returns 200 from a `fetch` inside a real tab. So requests ride the
 user's own signed-in (Cloudflare-cleared) www.booli.se tab via
-`@fetchproxy/server` + the Transporter extension. No Booli login needed —
+`@fetchproxy/server` + the ContextMint Bridge extension. No Booli login needed —
 just a cleared Cloudflare session (any normal page view). Verified live
 2026-07-13; full API in [docs/BOOLI-API.md](docs/BOOLI-API.md).
 
@@ -92,5 +92,5 @@ just a cleared Cloudflare session (any normal page view). Verified live
 ## Live verification
 
 Build + unit tests need no browser. A true end-to-end check needs the
-Transporter extension paired and a www.booli.se tab open;
+ContextMint Bridge extension paired and a www.booli.se tab open;
 `booli_healthcheck` is the quickest probe.

@@ -20,6 +20,7 @@ import {
   FetchproxySessionNotReadyError,
   registerBridgeHealthcheckTool,
 } from '@chrischall/mcp-utils/fetchproxy';
+import { FetchproxyCapabilityUnavailableError } from '@fetchproxy/server';
 import type { BooliClient } from '../client.js';
 import { CloudflareChallengeError } from '../transport-direct.js';
 import { BridgeHttpStatusError } from '../transport-fetchproxy.js';
@@ -27,7 +28,7 @@ import { BridgeHttpStatusError } from '../transport-fetchproxy.js';
 const WALLED_HINT =
   'Booli is serving a Cloudflare bot challenge. Set BOOLI_TRANSPORT=fetchproxy ' +
   '(or leave the default "auto"), keep a www.booli.se tab open (no login ' +
-  'needed), and approve the Transporter pairing prompt if one appears.';
+  'needed), and approve the ContextMint Bridge pairing prompt if one appears.';
 
 const DIRECT_FAILURE_HINT =
   'The probe ran over the direct fetch (no browser bridge involved) and failed ' +
@@ -65,6 +66,11 @@ function classifyThrown(
   }
   if (cause instanceof FetchproxyBridgeDownError) {
     return { kind: 'bridge_down' };
+  }
+  // The browser lacks an API the verb needs (fetchproxy 3.3): a property of
+  // this browser, not a fault in the MCP or the pairing — keep its own hint.
+  if (cause instanceof FetchproxyCapabilityUnavailableError) {
+    return { kind: 'capability_unavailable', hint: cause.hint };
   }
   return undefined;
 }
