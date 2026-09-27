@@ -55,8 +55,11 @@ just a cleared Cloudflare session (any normal page view). Verified live
   `last_extension_message_at` — the ONE bridge block, projected by the
   shared tool from `bridgeTransport().status()`; present only once a
   bridge exists), `probe`, `error` (`kind` — `cloudflare_challenge` for the
-  direct leg's `CloudflareChallengeError`, else the fetchproxy vocabulary
-  `session_not_ready` / `bridge_down` / `timeout` / …), `hint`. The
+  direct leg's `CloudflareChallengeError`, `http` for the bridge leg's
+  upstream non-2xx, `capability_unavailable` when the browser lacks an API
+  the verb needs (fetchproxy 3.3+; keeps the error's own `hint`), else the
+  fetchproxy vocabulary `session_not_ready` / `bridge_down` / `timeout` /
+  …), `hint`. The
   fetchproxy transport wraps typed bridge errors with the original as
   `cause` so the classification survives the wrapper.
 - `@fetchproxy/server` is bundled in (no esbuild `--external`), so the
