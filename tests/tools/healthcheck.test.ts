@@ -176,7 +176,7 @@ describe('booli_healthcheck on the browser bridge', () => {
     });
     expect(body.error?.kind).toBe('session_not_ready');
     expect(body.error?.message).toBe('Booli bridge: session not ready');
-    expect(body.hint).toMatch(/No Transporter extension is attached/);
+    expect(body.hint).toMatch(/ContextMint Bridge isn't attached to this bridge \(port 37149\)/);
   });
 
   it('classifies the bridge leg\'s non-JSON challenge page as cloudflare_challenge (#53)', async () => {

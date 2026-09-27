@@ -25,8 +25,18 @@ browser-bridge fallback when walled), `fetchproxy` (always the bridge), or
 1. Install **ContextMint Bridge** from its
    [releases page](https://github.com/nullnet-app/contextmint-bridge/releases) — Chrome: download
    the chrome zip, unzip it, and load it unpacked at `chrome://extensions`
-   (Developer mode); Safari: it ships inside the ContextMint app. Keep a
-   **www.booli.se** tab open.
+   (Developer mode). Safari isn't available yet (it will ship inside the
+   ContextMint app, which has no public download), so use Chrome for now.
+   Keep a **www.booli.se** tab open.
+
+   ContextMint Bridge is the fetchproxy browser extension under its new name,
+   from the same maintainer — fetchproxy's own
+   [README](https://github.com/chrischall/fetchproxy#extension) points to it.
+   Its source is public at
+   [nullnet-app/contextmint-bridge](https://github.com/nullnet-app/contextmint-bridge):
+   build it yourself, or check a release zip against the `.sha256` file
+   published beside it
+   (`shasum -a 256 -c contextmint-bridge-chrome-<version>.zip.sha256`).
 2. On the first request, approve the one-time pairing prompt in ContextMint
    Bridge.
 3. Run `booli_healthcheck` to confirm the path is working. Its `transport`
