@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.1.4](https://github.com/chrischall/booli-mcp/compare/v2.1.3...v2.1.4) (2026-09-28)
+
+
+### Bug Fixes
+
+* **deps:** move to [@fetchproxy](https://github.com/fetchproxy) 3.4 for ContextMint Bridge errors, capability subsets and managed pins ([#102](https://github.com/chrischall/booli-mcp/issues/102)) ([61811a9](https://github.com/chrischall/booli-mcp/commit/61811a916a9cc01c2374f5e37352a5cdf101272c))
+* **deps:** move to @chrischall/mcp-utils 2.8 and [@fetchproxy](https://github.com/fetchproxy) 3.4.1 for clearer browser-bridge errors ([#106](https://github.com/chrischall/booli-mcp/issues/106)) ([f1ca04a](https://github.com/chrischall/booli-mcp/commit/f1ca04afad2b85424406d216d3839c99ca67d3b1))
+
+
+### Documentation
+
+* **claude-md:** list capability_unavailable and http healthcheck error kinds ([#105](https://github.com/chrischall/booli-mcp/issues/105)) ([a7bf124](https://github.com/chrischall/booli-mcp/commit/a7bf124f62606cb6d15c52000e2f889297e449e0))
+
 ## [2.1.3](https://github.com/chrischall/booli-mcp/compare/v2.1.2...v2.1.3) (2026-09-23)
 
 
