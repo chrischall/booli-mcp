@@ -49,6 +49,28 @@ describe('BooliFetchproxyTransport', () => {
     }
   });
 
+  it('keeps the retry for a query that merely mentions "mutation" (fleet-audit#988)', async () => {
+    const bridge = fakeBridge();
+    const t = new BooliFetchproxyTransport({ bridge });
+    // The old `/\bmutation\b/` refused all three.
+    await t.graphql('query X { mutation { id } }', {});
+    await t.graphql('# no mutation here\nquery Y { y }', {});
+    await t.graphql('query Z { search(q: "mutation") { id } }', {});
+    for (const [init] of vi.mocked(bridge.fetch).mock.calls) {
+      expect(init.retryOnTimeout).toBe(true);
+    }
+  });
+
+  it('never marks a mutation after a fragment, or an unparseable document, retry-safe', async () => {
+    const bridge = fakeBridge();
+    const t = new BooliFetchproxyTransport({ bridge });
+    await t.graphql('fragment F on T { a }\nmutation M { m { ...F } }', {});
+    await t.graphql('query { a(s: "unterminated) }', {});
+    for (const [init] of vi.mocked(bridge.fetch).mock.calls) {
+      expect(init.retryOnTimeout).not.toBe(true);
+    }
+  });
+
   it('never marks a GraphQL mutation retry-safe', async () => {
     const bridge = fakeBridge();
     const t = new BooliFetchproxyTransport({ bridge });

@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { EdgeBlockedError } from '@chrischall/mcp-utils';
 import { CloudflareChallengeError, DirectTransport } from '../src/transport-direct.js';
 
 /** A fetch stub returning queued responses (last one repeats). */
@@ -48,6 +49,34 @@ describe('DirectTransport.graphql', () => {
     ]);
     const t = new DirectTransport({ fetchImpl: impl, maxRetries: 0 });
     await expect(t.graphql('q', {})).rejects.toBeInstanceOf(CloudflareChallengeError);
+  });
+
+  it('types a challenge as the shared EdgeBlockedError (vendor + status)', async () => {
+    const { impl } = stubFetch([
+      { ok: false, status: 403, text: 'blocked', headers: { 'cf-mitigated': 'challenge' } },
+    ]);
+    const err = await new DirectTransport({ fetchImpl: impl, maxRetries: 0 })
+      .graphql('q', {})
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EdgeBlockedError);
+    expect((err as EdgeBlockedError).vendor).toBe('Cloudflare');
+    expect((err as EdgeBlockedError).status).toBe(403);
+    expect((err as Error).message).toMatch(/Booli GraphQL HTTP 403/);
+  });
+
+  it('recognises any CDN/WAF refusal the shared rule knows, e.g. CloudFront (fleet-audit#988)', async () => {
+    const { impl } = stubFetch([
+      {
+        ok: false,
+        status: 403,
+        text: '<HTML><HEAD><TITLE>ERROR: The request could not be satisfied</TITLE></HEAD></HTML>',
+      },
+    ]);
+    const err = await new DirectTransport({ fetchImpl: impl, maxRetries: 0 })
+      .graphql('q', {})
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(EdgeBlockedError);
+    expect((err as EdgeBlockedError).vendor).toBe('CloudFront');
   });
 
   it('detects the interstitial body markers as a challenge', async () => {

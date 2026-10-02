@@ -247,7 +247,9 @@ describe('booli_healthcheck on the browser bridge', () => {
     });
     expect(body.ok).toBe(false);
     expect(body.error?.kind).toBe('capability_unavailable');
-    expect(body.hint).toMatch(/this browser \(safari\) cannot serve the "fetch" capability/);
-    expect(body.hint).toMatch(/Nothing is wrong with the MCP's code/);
+    // The shared ladder's capability copy (mcp-utils 2.12 unwraps the cause).
+    expect(body.hint).toMatch(/browser \(safari\) can't serve the "fetch" capability/i);
+    expect(body.hint).toMatch(/MCP isn't at fault/);
+    expect(body.hint).not.toMatch(/BOOLI_TRANSPORT/);
   });
 });
