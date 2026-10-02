@@ -57,8 +57,9 @@ just a cleared Cloudflare session (any normal page view). Verified live
   `last_extension_message_at` — the ONE bridge block, projected by the
   shared tool from `bridgeTransport().status()`; present only once a
   bridge exists), `probe`, `error` (`kind` — `cloudflare_challenge` for the
-  direct leg's `CloudflareChallengeError`, `http` for the bridge leg's
-  upstream non-2xx, `capability_unavailable` when the browser lacks an API
+  direct leg's `CloudflareChallengeError`, `edge_blocked` (with
+  `detail.vendor`) when the bridge leg relays a CDN/WAF refusal page,
+  `http` for the bridge leg's other upstream non-2xx, `capability_unavailable` when the browser lacks an API
   the verb needs (fetchproxy 3.3+; the shared ladder's hint), else the
   fetchproxy vocabulary `session_not_ready` / `bridge_down` / `timeout` /
   …), `hint`. The

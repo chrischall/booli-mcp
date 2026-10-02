@@ -25,7 +25,7 @@ import {
   type FetchproxyServerOpts,
 } from '@chrischall/mcp-utils/fetchproxy';
 import { isReadOnlyGraphqlDocument } from '@chrischall/mcp-utils/graphql';
-import { readPortEnv } from '@chrischall/mcp-utils';
+import { EdgeBlockedError, detectEdgeBlock, readPortEnv } from '@chrischall/mcp-utils';
 import type {
   GraphQLResponse,
   BooliTransport,
@@ -170,6 +170,23 @@ export class BooliFetchproxyTransport implements BooliTransport {
       );
     }
     if (result.status < 200 || result.status >= 300) {
+      // A CDN/WAF refusal page relayed through the tab is not Booli's answer:
+      // type it as the shared EdgeBlockedError so the healthcheck reports
+      // `edge_blocked` rather than an upstream `http` status
+      // (chrischall/mcp-host#1015).
+      const edge = detectEdgeBlock({ body: result.body, status: result.status });
+      if (edge) {
+        const blocked = new EdgeBlockedError(result.status, edge.vendor, {
+          service: 'Booli',
+          method: 'POST',
+          path: '/graphql',
+        });
+        throw new Error(
+          `Booli GraphQL via browser bridge: ${blocked.message} Refresh the ` +
+            'www.booli.se tab (no login needed) and retry, or try again later.',
+          { cause: blocked },
+        );
+      }
       throw new Error(
         `Booli GraphQL HTTP ${result.status} via browser bridge — ` +
           `body starts: ${result.body.slice(0, 200)}. Open or refresh a ` +

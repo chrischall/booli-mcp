@@ -15,6 +15,7 @@
  * attached, service worker asleep, …).
  */
 import type { McpServer } from '@modelcontextprotocol/server';
+import { EdgeBlockedError } from '@chrischall/mcp-utils';
 import { registerBridgeHealthcheckTool } from '@chrischall/mcp-utils/fetchproxy';
 import type { BooliClient } from '../client.js';
 import { CloudflareChallengeError } from '../transport-direct.js';
@@ -43,15 +44,23 @@ const DIRECT_FAILURE_HINT =
  *   - a `CloudflareChallengeError` — the direct leg's, or the bridge leg's
  *     non-JSON answer's `cause` → `cloudflare_challenge` with the
  *     BOOLI_TRANSPORT remediation (this server's documented kind);
- *   - the bridge leg's non-2xx, typed `BridgeHttpStatusError` as `cause` —
- *     an upstream HTTP status, not a bridge fault → `http`.
+ *   - the bridge leg's CDN/WAF refusal page, typed `EdgeBlockedError` as
+ *     `cause` → `edge_blocked` with the vendor (mcp-host#1015);
+ *   - the bridge leg's other non-2xx, typed `BridgeHttpStatusError` as
+ *     `cause` — an upstream HTTP status, not a bridge fault → `http`.
  */
 function classifyThrown(
   err: unknown,
-): { kind: string; hint?: string } | undefined {
+): { kind: string; hint?: string; detail?: Record<string, unknown> } | undefined {
   const cause = err instanceof Error ? err.cause : undefined;
   if (err instanceof CloudflareChallengeError || cause instanceof CloudflareChallengeError) {
     return { kind: 'cloudflare_challenge', hint: WALLED_HINT };
+  }
+  // The bridge leg relayed a CDN/WAF refusal page: say so by the shared
+  // arm, whose copy (no re-sign-in, try later / another network) fits a
+  // block the bridge already could not get past (mcp-host#1015).
+  if (cause instanceof EdgeBlockedError) {
+    return { kind: 'edge_blocked', detail: { vendor: cause.vendor } };
   }
   if (cause instanceof BridgeHttpStatusError) {
     return { kind: 'http' };
