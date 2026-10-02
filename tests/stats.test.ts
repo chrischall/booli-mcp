@@ -61,4 +61,25 @@ describe('computeMarketStats', () => {
     expect(stats.median_price_per_sqm).toBeNull();
     expect(stats.average_price_change_percent).toBe(5);
   });
+
+  it('keeps the exact key order of its output (realty-core reproduces it)', () => {
+    expect(Object.keys(computeMarketStats([]))).toEqual([
+      'sample_size',
+      'median_sold_price',
+      'average_sold_price',
+      'median_price_per_sqm',
+      'average_price_per_sqm',
+      'average_price_change_percent',
+      'min_sold_price',
+      'max_sold_price',
+    ]);
+  });
+
+  it('ignores a NaN field instead of poisoning the whole sample (realty-core, fleet-audit#988)', () => {
+    const rows = [sold({ soldPrice: 2_000_000 }), sold({ soldPrice: 1_000_000 })];
+    (rows[1] as { sold_price: number | null }).sold_price = Number.NaN;
+    const stats = computeMarketStats(rows);
+    expect(stats.median_sold_price).toBe(2_000_000);
+    expect(stats.min_sold_price).toBe(2_000_000);
+  });
 });

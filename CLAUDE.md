@@ -33,17 +33,19 @@ just a cleared Cloudflare session (any normal page view). Verified live
   tool is written against it so tests drive them through an in-memory
   fake (tests/helpers.ts) with zero network.
 - `src/transport-direct.ts` — direct Node `fetch` to www.booli.se/graphql;
-  throws a typed `CloudflareChallengeError` on the bot wall (detected by
-  `cf-mitigated: challenge` / `_cf_chl_opt` / "Just a moment" only).
+  throws a typed `CloudflareChallengeError` (an mcp-utils `EdgeBlockedError`)
+  when the shared `detectEdgeBlock` sees a CDN/WAF refusal — the
+  `cf-mitigated` header or a vendor's page markers, at any status.
 - `src/transport-fetchproxy.ts` — the browser bridge: each GraphQL POST
   runs as a same-origin fetch in the signed-in tab via
   `createFetchproxyTransport` (`@chrischall/mcp-utils/fetchproxy`).
 - `src/transport-fallback.ts` — `createDefaultTransport`: direct-first with
-  sticky fallback to the bridge on `CloudflareChallengeError`.
+  sticky fallback to the bridge on any edge block — a thin adapter over
+  mcp-utils `createDirectFirstTransport` / `readTransportMode`.
   `BOOLI_TRANSPORT` = `direct` | `fetchproxy` | `auto` (default). Shared
   fleet WS port **37149** (`BOOLI_WS_PORT`). Its `status()` reports the
   leg the next call rides (`mode: 'auto'`), and `bridgeTransport()` the
-  bridge once the fallback has built it.
+  bridge once the fallback has built it (plus `blocked_by` after a switch).
 - `src/tools/healthcheck.ts` — `booli_healthcheck` is the fleet's shared
   `registerBridgeHealthcheckTool` (`@chrischall/mcp-utils/fetchproxy`) in
   its direct-first (`path`) mode: `probeFn` is `client.healthcheck()`,
@@ -57,7 +59,7 @@ just a cleared Cloudflare session (any normal page view). Verified live
   bridge exists), `probe`, `error` (`kind` — `cloudflare_challenge` for the
   direct leg's `CloudflareChallengeError`, `http` for the bridge leg's
   upstream non-2xx, `capability_unavailable` when the browser lacks an API
-  the verb needs (fetchproxy 3.3+; keeps the error's own `hint`), else the
+  the verb needs (fetchproxy 3.3+; the shared ladder's hint), else the
   fetchproxy vocabulary `session_not_ready` / `bridge_down` / `timeout` /
   …), `hint`. The
   fetchproxy transport wraps typed bridge errors with the original as

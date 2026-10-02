@@ -15,6 +15,7 @@
  * The queries are anonymous (no login, no token), so nothing needs
  * redaction; a descriptive User-Agent identifies the client honestly.
  */
+import { EdgeBlockedError, detectEdgeBlock } from '@chrischall/mcp-utils';
 import type {
   GraphQLResponse,
   BooliTransport,
@@ -46,23 +47,19 @@ function delay(ms: number): Promise<void> {
 class HardHttpError extends Error {}
 
 /**
- * Booli answered with a Cloudflare bot challenge instead of GraphQL.
- * Callers use this type to fall back to the fetchproxy browser bridge.
+ * Booli's CDN/WAF refused the request instead of answering GraphQL (in
+ * practice Cloudflare's managed challenge). It IS the shared
+ * `EdgeBlockedError` (fleet-audit#988), so `createDirectFirstTransport`
+ * falls back to the browser bridge on it and the shared healthcheck reads
+ * its vendor, while keeping this repo's diagnostic message. The class name
+ * is kept for `booli_healthcheck`'s `cloudflare_challenge` kind.
  */
-export class CloudflareChallengeError extends HardHttpError {}
-
-/**
- * Definitive challenge markers only (per fleet guidance): the
- * `cf-mitigated: challenge` header, or the interstitial's `_cf_chl_opt`
- * script / "Just a moment" title in the body. Do NOT match
- * `challenges.cloudflare.com` — Cloudflare inlines that on cleared pages.
- */
-function isCloudflareChallenge(res: Response, body: string): boolean {
-  return (
-    res.headers.get('cf-mitigated') === 'challenge' ||
-    body.includes('_cf_chl_opt') ||
-    body.includes('<title>Just a moment')
-  );
+export class CloudflareChallengeError extends EdgeBlockedError {
+  constructor(message: string, status = 403, vendor = 'Cloudflare') {
+    super(status, vendor, { service: 'Booli', method: 'POST', path: '/graphql' });
+    this.name = 'CloudflareChallengeError';
+    this.message = message;
+  }
 }
 
 /** Read the body for diagnostics; best-effort (the status alone still tells the story). */
@@ -83,13 +80,21 @@ function diagnostics(res: Response): string {
     .join('; ');
 }
 
-/** The typed challenge error the fallback transport switches on. */
-function challengeError(res: Response): CloudflareChallengeError {
+/**
+ * The challenge error for a response the shared `detectEdgeBlock` judges to
+ * be a CDN/WAF refusal (the `cf-mitigated` header, or a vendor's page
+ * markers — Cloudflare's challenge markers at any status), or `undefined`.
+ */
+function edgeBlockError(res: Response, body: string): CloudflareChallengeError | undefined {
+  const edge = detectEdgeBlock({ body, headers: res.headers, status: res.status });
+  if (!edge) return undefined;
   const diag = diagnostics(res);
   return new CloudflareChallengeError(
-    `Booli GraphQL HTTP ${res.status} — Cloudflare bot challenge` +
+    `Booli GraphQL HTTP ${res.status} — ${edge.vendor} bot challenge` +
       `${diag ? ` (${diag})` : ''}. Booli challenges non-browser clients; ` +
       'requests must ride a real browser session (fetchproxy bridge).',
+    res.status,
+    edge.vendor,
   );
 }
 
@@ -158,8 +163,7 @@ export class DirectTransport implements BooliTransport {
           try {
             return JSON.parse(text) as GraphQLResponse<T>;
           } catch {
-            if (isCloudflareChallenge(res, text)) throw challengeError(res);
-            throw new HardHttpError(
+            throw edgeBlockError(res, text) ?? new HardHttpError(
               `Booli GraphQL HTTP ${res.status} returned non-JSON — body starts: ${text.slice(0, 200)}`,
             );
           }
@@ -169,7 +173,8 @@ export class DirectTransport implements BooliTransport {
         // JS challenge as 503, and retrying those only delays the fallback.
         // Reading the body here also drains it on the retry path.
         const errBody = await readBodySafely(res);
-        if (isCloudflareChallenge(res, errBody)) throw challengeError(res);
+        const blocked = edgeBlockError(res, errBody);
+        if (blocked) throw blocked;
         if (!RETRYABLE_STATUS.has(res.status)) {
           throw hardHttpError(res, errBody.slice(0, 200));
         }
@@ -177,7 +182,7 @@ export class DirectTransport implements BooliTransport {
       } catch (err) {
         // A hard HTTP error is terminal — propagate at once. Network
         // errors and aborts (timeouts) fall through to the next attempt.
-        if (err instanceof HardHttpError) throw err;
+        if (err instanceof HardHttpError || err instanceof EdgeBlockedError) throw err;
         lastError = err;
       } finally {
         clearTimeout(timer);

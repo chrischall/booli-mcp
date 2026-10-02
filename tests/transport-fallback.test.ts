@@ -3,6 +3,7 @@ import {
   FallbackTransport,
   createDefaultTransport,
 } from '../src/transport-fallback.js';
+import { EdgeBlockedError } from '@chrischall/mcp-utils';
 import { CloudflareChallengeError, DirectTransport } from '../src/transport-direct.js';
 import type { BooliTransport, GraphQLResponse, TransportStatus } from '../src/transport.js';
 import type { BridgeHealthcheckTransport } from '@chrischall/mcp-utils/fetchproxy';
@@ -65,6 +66,38 @@ describe('FallbackTransport', () => {
   });
 });
 
+describe('FallbackTransport on the shared router (fleet-audit#988)', () => {
+  it('falls back on any CDN/WAF refusal, not just a Cloudflare challenge', async () => {
+    const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const direct = transportThrowing(
+      new EdgeBlockedError(403, 'CloudFront', { service: 'Booli', method: 'POST', path: '/graphql' }),
+    );
+    const t = new FallbackTransport(direct, () => transportReturning({ via: 'bridge' }));
+    expect(await t.graphql('q', {})).toEqual({ data: { via: 'bridge' } });
+    expect(t.status()).toEqual({ transport: 'fetchproxy', mode: 'auto', blocked_by: 'CloudFront' });
+    stderr.mockRestore();
+  });
+
+  it('builds the bridge once for concurrent walled calls', async () => {
+    const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const direct = transportThrowing(new CloudflareChallengeError('walled'));
+    const factory = vi.fn(() => transportReturning({ via: 'bridge' }));
+    const t = new FallbackTransport(direct, factory);
+    await Promise.all([t.graphql('q', {}), t.graphql('q', {}), t.graphql('q', {})]);
+    expect(factory).toHaveBeenCalledOnce();
+    stderr.mockRestore();
+  });
+
+  it('reads BOOLI_TRANSPORT case-insensitively', async () => {
+    vi.stubEnv('BOOLI_TRANSPORT', 'FetchProxy');
+    const t = createDefaultTransport({
+      direct: transportReturning({ mode: 'direct' }),
+      bridgeFactory: () => transportReturning({ mode: 'bridge' }),
+    });
+    expect(await t.graphql('q', {})).toEqual({ data: { mode: 'bridge' } });
+  });
+});
+
 describe('FallbackTransport status', () => {
   const directStatus: TransportStatus = { transport: 'direct', mode: 'direct' };
   const bridgeStatus: TransportStatus = { transport: 'fetchproxy', mode: 'fetchproxy' };
@@ -90,21 +123,21 @@ describe('FallbackTransport status', () => {
     };
     const t = new FallbackTransport(direct, () => bridge);
     await t.graphql('q', {});
-    expect(t.status()).toEqual({ ...bridgeStatus, mode: 'auto' });
+    expect(t.status()).toEqual({ ...bridgeStatus, mode: 'auto', blocked_by: 'Cloudflare' });
     expect(t.bridgeTransport()).toBe(bridgeHealthcheck);
     stderr.mockRestore();
   });
 
-  it('reports an unknown path when the active leg has no status', async () => {
+  it('reports the leg it routes to even when that leg has no status of its own', async () => {
     const stderr = vi.spyOn(console, 'error').mockImplementation(() => {});
     const t = new FallbackTransport(transportReturning({}), () => transportReturning({}));
-    expect(t.status()).toEqual({ transport: 'unknown', mode: 'auto' });
+    expect(t.status()).toEqual({ transport: 'direct', mode: 'auto' });
     const walled = new FallbackTransport(
       transportThrowing(new CloudflareChallengeError('walled')),
       () => transportReturning({}),
     );
     await walled.graphql('q', {});
-    expect(walled.status()).toEqual({ transport: 'unknown', mode: 'auto' });
+    expect(walled.status()).toEqual({ transport: 'fetchproxy', mode: 'auto', blocked_by: 'Cloudflare' });
     expect(walled.bridgeTransport()).toBeUndefined();
     stderr.mockRestore();
   });

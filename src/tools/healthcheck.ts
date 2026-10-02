@@ -15,12 +15,7 @@
  * attached, service worker asleep, …).
  */
 import type { McpServer } from '@modelcontextprotocol/server';
-import {
-  FetchproxyBridgeDownError,
-  FetchproxySessionNotReadyError,
-  registerBridgeHealthcheckTool,
-} from '@chrischall/mcp-utils/fetchproxy';
-import { FetchproxyCapabilityUnavailableError } from '@fetchproxy/server';
+import { registerBridgeHealthcheckTool } from '@chrischall/mcp-utils/fetchproxy';
 import type { BooliClient } from '../client.js';
 import { CloudflareChallengeError } from '../transport-direct.js';
 import { BridgeHttpStatusError } from '../transport-fetchproxy.js';
@@ -38,39 +33,28 @@ const DIRECT_FAILURE_HINT =
   'the default "auto" to switch on the next challenge.';
 
 /**
- * Site-specific re-kinding of what the probe threw. The direct leg's
- * `CloudflareChallengeError` is the one error the shared ladder can't name;
- * on the bridge leg transport-fetchproxy wraps the typed fetchproxy errors
- * in a plain `Error` (message + remediation hint) with the original as
- * `cause`, so look through it to keep the shared classification.
+ * Site-specific re-kinding of what the probe threw — only what the shared
+ * ladder can't say on its own. Since mcp-utils 2.12 the shared healthcheck
+ * unwraps a typed bridge failure that transport-fetchproxy re-throws as
+ * `cause` (`session_not_ready` / `bridge_down` / `timeout` /
+ * `capability_unavailable` keep their kinds and hints), so the arms this
+ * file used to hand-roll for those are gone (fleet-audit#988).
+ *
+ *   - a `CloudflareChallengeError` — the direct leg's, or the bridge leg's
+ *     non-JSON answer's `cause` → `cloudflare_challenge` with the
+ *     BOOLI_TRANSPORT remediation (this server's documented kind);
+ *   - the bridge leg's non-2xx, typed `BridgeHttpStatusError` as `cause` —
+ *     an upstream HTTP status, not a bridge fault → `http`.
  */
 function classifyThrown(
   err: unknown,
 ): { kind: string; hint?: string } | undefined {
-  if (err instanceof CloudflareChallengeError) {
-    return { kind: 'cloudflare_challenge', hint: WALLED_HINT };
-  }
   const cause = err instanceof Error ? err.cause : undefined;
-  // The bridge leg's non-JSON answer (transport-fetchproxy.ts) carries the
-  // challenge as `cause`: same wall, same remedy.
-  if (cause instanceof CloudflareChallengeError) {
+  if (err instanceof CloudflareChallengeError || cause instanceof CloudflareChallengeError) {
     return { kind: 'cloudflare_challenge', hint: WALLED_HINT };
   }
-  // The bridge leg's non-2xx carries a typed cause (an upstream HTTP
-  // status, not a bridge fault) — file it as `http` rather than `unknown`.
   if (cause instanceof BridgeHttpStatusError) {
     return { kind: 'http' };
-  }
-  if (cause instanceof FetchproxySessionNotReadyError) {
-    return { kind: 'session_not_ready' };
-  }
-  if (cause instanceof FetchproxyBridgeDownError) {
-    return { kind: 'bridge_down' };
-  }
-  // The browser lacks an API the verb needs (fetchproxy 3.3): a property of
-  // this browser, not a fault in the MCP or the pairing — keep its own hint.
-  if (cause instanceof FetchproxyCapabilityUnavailableError) {
-    return { kind: 'capability_unavailable', hint: cause.hint };
   }
   return undefined;
 }

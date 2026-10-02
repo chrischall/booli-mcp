@@ -35,6 +35,8 @@ export interface GraphQLResponse<T> {
 export type TransportStatus = {
   transport: 'direct' | 'fetchproxy' | 'unknown';
   mode: 'direct' | 'fetchproxy' | 'auto';
+  /** The CDN/WAF that forced the auto fallback onto the bridge, when known. */
+  blocked_by?: string;
 };
 
 export interface BooliTransport {

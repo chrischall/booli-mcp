@@ -24,6 +24,7 @@ import {
   type FetchproxyServer,
   type FetchproxyServerOpts,
 } from '@chrischall/mcp-utils/fetchproxy';
+import { isReadOnlyGraphqlDocument } from '@chrischall/mcp-utils/graphql';
 import { readPortEnv } from '@chrischall/mcp-utils';
 import type {
   GraphQLResponse,
@@ -79,17 +80,6 @@ export interface FetchproxyTransportOptions {
   bridge?: BooliBridge;
   /** Test seam forwarded to `createFetchproxyTransport`. */
   createServer?: (opts: FetchproxyServerOpts) => FetchproxyServer;
-}
-
-/**
- * True when a GraphQL document may contain a `mutation` operation.
- * Deliberately conservative: any `mutation` token anywhere (even a field
- * name or a second operation in a multi-op document) counts, so the
- * error is always toward NOT retrying — a skipped retry is a visible
- * timeout, a wrong retry is a duplicated write.
- */
-export function isMutation(query: string): boolean {
-  return /\bmutation\b/.test(query);
 }
 
 export class BooliFetchproxyTransport implements BooliTransport {
@@ -162,8 +152,11 @@ export class BooliFetchproxyTransport implements BooliTransport {
         body: JSON.stringify({ query, variables }),
         // fetchproxy 3.2 no longer re-sends a POST after a transport
         // timeout. Every Booli operation is a read-only GraphQL query, so
-        // keep the cold-start retry for queries — but never for a mutation.
-        retryOnTimeout: !isMutation(query),
+        // keep the cold-start retry for queries — but never for a mutation,
+        // nor for a document the shared lexer cannot parse. A real lexer,
+        // not `/\bmutation\b/`: a field, alias, argument or comment that
+        // says "mutation" is still a read (fleet-audit#988 / #1080).
+        retryOnTimeout: isReadOnlyGraphqlDocument(query),
       });
     } catch (err) {
       // Bridge-layer failures (extension down, pairing pending, timeout)
@@ -198,6 +191,7 @@ export class BooliFetchproxyTransport implements BooliTransport {
         {
           cause: new CloudflareChallengeError(
             'Booli GraphQL answered a non-JSON page via the browser bridge (Cloudflare challenge interstitial)',
+            result.status,
           ),
         },
       );
