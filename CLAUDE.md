@@ -92,8 +92,18 @@ just a cleared Cloudflare session (any normal page view). Verified live
   the validation errors — that's how every field here was pinned).
 - **Version** lives once in `src/version.ts` (`x-release-please-version`);
   release-please bumps it + the manifests. Don't hand-bump.
-- **Don't merge PRs / add `ready-to-merge`** — `pr-auto-review` +
-  `auto-merge` ship them.
+
+<!-- pr-workflow:v3 -->
+## Pull requests & release notes
+
+Fleet policy — Conventional-Commit PR titles, labels, the auto-review /
+auto-merge ladder, auto-review follow-up issues, PR timing, and release PRs —
+lives in `~/.claude/CLAUDE.md`. Don't restate it here; the copies drifted.
+
+Shared technical conventions (publishing, bundling, versioning guards,
+write-verification, transport archetypes, testing traps) live in
+[`chrischall/workflows`](https://github.com/chrischall/workflows):
+`docs/fleet-conventions.md`, plus `README.md` for the CI pipeline contract.
 
 ## Live verification
 
