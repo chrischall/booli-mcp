@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.1.5](https://github.com/chrischall/booli-mcp/compare/v2.1.4...v2.1.5) (2026-10-03)
+
+
+### Bug Fixes
+
+* **deps:** adopt @chrischall/mcp-utils 2.12.0 direct-first transport, edge-block detection and graphql lexer ([#112](https://github.com/chrischall/booli-mcp/issues/112)) ([1f09ddc](https://github.com/chrischall/booli-mcp/commit/1f09ddc2ab708bfb35325725a529e7463e5680e5))
+* **deps:** bump @chrischall/mcp-utils to 2.13.0 and realty-core to 0.6.0 ([#115](https://github.com/chrischall/booli-mcp/issues/115)) ([ccd36e7](https://github.com/chrischall/booli-mcp/commit/ccd36e71edf4e6a170fe379dacfae21fdb08b99c))
+* **healthcheck:** report a CDN/WAF block on the browser-bridge leg as edge_blocked ([#113](https://github.com/chrischall/booli-mcp/issues/113)) ([fa2fabd](https://github.com/chrischall/booli-mcp/commit/fa2fabd6ddd011b3191d25b25c721814df82a244))
+* keep credentials and report edge_blocked on CDN/WAF blocks (mcp-utils 2.10.0) ([#111](https://github.com/chrischall/booli-mcp/issues/111)) ([da506d8](https://github.com/chrischall/booli-mcp/commit/da506d8d119c319af1b1831e5c09426dd76cd4f2))
+* report CDN/WAF blocks as edge_blocked, not a rejected credential (mcp-utils 2.9.0) ([#109](https://github.com/chrischall/booli-mcp/issues/109)) ([e8850a7](https://github.com/chrischall/booli-mcp/commit/e8850a74493bcf4baa055245dababecbc6ba2882))
+
+
+### Documentation
+
+* replace restated merge policy with the fleet-policy pointer ([#114](https://github.com/chrischall/booli-mcp/issues/114)) ([ba3aae4](https://github.com/chrischall/booli-mcp/commit/ba3aae49c549b78630a65e6cf42207b36d2dad1e))
+
 ## [2.1.4](https://github.com/chrischall/booli-mcp/compare/v2.1.3...v2.1.4) (2026-09-28)
 
 
