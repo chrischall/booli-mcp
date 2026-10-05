@@ -46,14 +46,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@chrischall/mcp-utils": "^2.13.0",
+    "@chrischall/mcp-utils": "^2.14.0",
     "@chrischall/realty-core": "^0.6.0",
     "@fetchproxy/server": "^3.4.1",
-    "@modelcontextprotocol/server": "^2.2.0",
+    "@modelcontextprotocol/server": "^2.3.0",
     "zod": "^4.6.5"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "^2.2.0",
+    "@modelcontextprotocol/client": "^2.3.0",
     "@types/node": "^26.2.0",
     "@vitest/coverage-v8": "^5.0.0",
     "esbuild": "^0.28.2",
