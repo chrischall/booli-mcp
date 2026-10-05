@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.6](https://github.com/chrischall/booli-mcp/compare/v2.1.5...v2.1.6) (2026-10-05)
+
+
+### Bug Fixes
+
+* **deps:** require @chrischall/mcp-utils 2.14.0 and MCP SDK 2.3.0 ([#116](https://github.com/chrischall/booli-mcp/issues/116)) ([a88911c](https://github.com/chrischall/booli-mcp/commit/a88911cd6a03114dc26a8659d9e9cc25a04993fb))
+
 ## [2.1.5](https://github.com/chrischall/booli-mcp/compare/v2.1.4...v2.1.5) (2026-10-03)
 
 
