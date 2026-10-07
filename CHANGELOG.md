@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.7](https://github.com/chrischall/booli-mcp/compare/v2.1.6...v2.1.7) (2026-10-07)
+
+
+### Bug Fixes
+
+* **deps:** add MCP_CONFIRM_ELICITATION=off and harden fetchproxy room frames ([#122](https://github.com/chrischall/booli-mcp/issues/122)) ([61e9b4a](https://github.com/chrischall/booli-mcp/commit/61e9b4a03756f35c7ede9828e47ffcbab5fe8f96))
+* **deps:** bump @fetchproxy/server ([#120](https://github.com/chrischall/booli-mcp/issues/120)) ([9f226a0](https://github.com/chrischall/booli-mcp/commit/9f226a04d50d5faed5700eb123234011769b3f92))
+* **deps:** bump source-map-js ([#123](https://github.com/chrischall/booli-mcp/issues/123)) ([fbc2350](https://github.com/chrischall/booli-mcp/commit/fbc235042a0e1b780a6b1a4daf9aae9658aa00cb))
+
 ## [2.1.6](https://github.com/chrischall/booli-mcp/compare/v2.1.5...v2.1.6) (2026-10-05)
 
 
