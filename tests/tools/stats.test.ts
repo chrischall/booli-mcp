@@ -63,4 +63,17 @@ describe('booli_market_stats', () => {
     expect(transport.calls).toHaveLength(0);
     await h.close();
   });
+
+  it('says which page the sample is and how many pages exist', async () => {
+    const { h, transport } = await mount(() => ({
+      data: { searchSold: { totalCount: 4210, pages: 120, result: [SOLD] } },
+    }));
+    const res = await h.callTool('booli_market_stats', { area_id: '76', page: 3 });
+    const body = parseToolResult<{
+      total_count: number; page: number; pages: number; sample_size: number; sold_price_count: number;
+    }>(res);
+    expect(body).toMatchObject({ total_count: 4210, page: 3, pages: 120, sample_size: 1, sold_price_count: 1 });
+    expect((transport.calls[0]!.variables.input as { page: number }).page).toBe(3);
+    await h.close();
+  });
 });

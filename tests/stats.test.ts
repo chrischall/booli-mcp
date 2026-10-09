@@ -43,6 +43,9 @@ describe('computeMarketStats', () => {
   it('returns null metrics for an empty sample', () => {
     expect(computeMarketStats([])).toEqual({
       sample_size: 0,
+      sold_price_count: 0,
+      price_per_sqm_count: 0,
+      price_change_count: 0,
       median_sold_price: null,
       average_sold_price: null,
       median_price_per_sqm: null,
@@ -57,6 +60,10 @@ describe('computeMarketStats', () => {
     const rows = [sold({ soldPrice: 1_000_000 }), sold({ diff: 5 })];
     const stats = computeMarketStats(rows);
     expect(stats.sample_size).toBe(2);
+    // Each metric reports how many rows actually fed it.
+    expect(stats.sold_price_count).toBe(1);
+    expect(stats.price_per_sqm_count).toBe(0);
+    expect(stats.price_change_count).toBe(1);
     expect(stats.median_sold_price).toBe(1_000_000);
     expect(stats.median_price_per_sqm).toBeNull();
     expect(stats.average_price_change_percent).toBe(5);
@@ -65,6 +72,9 @@ describe('computeMarketStats', () => {
   it('keeps the exact key order of its output (realty-core reproduces it)', () => {
     expect(Object.keys(computeMarketStats([]))).toEqual([
       'sample_size',
+      'sold_price_count',
+      'price_per_sqm_count',
+      'price_change_count',
       'median_sold_price',
       'average_sold_price',
       'median_price_per_sqm',
