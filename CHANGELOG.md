@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.1.8](https://github.com/chrischall/booli-mcp/compare/v2.1.7...v2.1.8) (2026-10-09)
+
+
+### Bug Fixes
+
+* annotate tools truthfully and sync manifests with the served tools ([#127](https://github.com/chrischall/booli-mcp/issues/127)) ([9d5276b](https://github.com/chrischall/booli-mcp/commit/9d5276b6c4ae9a465db771d83bff3cc7eac76c13))
+* declare the plugin MCP config under the mcpServers key Claude Code reads ([#129](https://github.com/chrischall/booli-mcp/issues/129)) ([1b01255](https://github.com/chrischall/booli-mcp/commit/1b0125577bb50c2d822ca9291b05431d0e0c44dd))
+* **deps:** update @chrischall/mcp-utils to 3.0.0 ([#126](https://github.com/chrischall/booli-mcp/issues/126)) ([8ba02c0](https://github.com/chrischall/booli-mcp/commit/8ba02c09acc6ea6ed700518495cd5d1670c4fe61))
+* drop the esbuild defines that only silenced a lint false positive ([#128](https://github.com/chrischall/booli-mcp/issues/128)) ([1ba6b75](https://github.com/chrischall/booli-mcp/commit/1ba6b7598a745bf28578ce62457624eef4ee4ff9))
+* resolve low-severity audit findings ([#124](https://github.com/chrischall/booli-mcp/issues/124)) ([9e05abc](https://github.com/chrischall/booli-mcp/commit/9e05abc42f1adbf8c19754697fb583ac03ab6f0c))
+
 ## [2.1.7](https://github.com/chrischall/booli-mcp/compare/v2.1.6...v2.1.7) (2026-10-07)
 
 
