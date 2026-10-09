@@ -69,13 +69,7 @@ just a cleared Cloudflare session (any normal page view). Verified live
   fetchproxy imports are eager static imports — safe because nothing is
   externalized. If you ever externalize it, make those imports lazy
   `await import()` behind the fetchproxy/auto path.
-- The `bundle` script `--define`s three env reads that are inert in the
-  bundle, so the fleet env lint (which scans `dist/`) sees only keys the
-  server honours: `FETCHPROXY_WS_PORT` (we always pass `port`, so
-  fetchproxy never consults it — `BOOLI_WS_PORT` is the knob) and ws's
-  `WS_NO_BUFFER_UTIL` / `WS_NO_UTF_8_VALIDATE` (the .mcpb ships no
-  `node_modules`, so the optional native addons can never load). The env
-  keys that ARE honoured — `BOOLI_TRANSPORT`, `BOOLI_WS_PORT`,
+- The env keys the server honours — `BOOLI_TRANSPORT`, `BOOLI_WS_PORT`,
   `FETCHPROXY_WS_HOST`, `FETCHPROXY_IDENTITY_DIR` — are declared in
   manifest.json and server.json, pinned by tests/manifest.test.ts.
 
