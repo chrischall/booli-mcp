@@ -35,6 +35,15 @@ export const OBJECT_TYPES = [
   'Tomt/Mark',
 ] as const;
 
+/** Split a comma-separated `object_type` into trimmed tokens. */
+function splitObjectTypes(value: string): string[] {
+  return value.split(',').map((t) => t.trim());
+}
+
+function isObjectType(token: string): boolean {
+  return (OBJECT_TYPES as readonly string[]).includes(token);
+}
+
 /** Sort keys accepted by the for-sale search (direction via `ascending`). */
 export const SORT_KEYS = [
   'published',
@@ -68,6 +77,9 @@ export const commonSearchShape = {
     ),
   object_type: z
     .string()
+    .refine((v) => splitObjectTypes(v).every(isObjectType), {
+      message: `object_type must be one or more of (comma-separated, exact spelling): ${OBJECT_TYPES.join(', ')}.`,
+    })
     .optional()
     .describe(
       `Property type(s), comma-separated, from: ${OBJECT_TYPES.join(', ')}.`,
@@ -120,7 +132,9 @@ function addFilter(filters: SearchFilter[], key: string, value: unknown): void {
 /** The filters common to both searches (everything except price/date). */
 export function buildCommonFilters(args: CommonSearchArgs): SearchFilter[] {
   const filters: SearchFilter[] = [];
-  addFilter(filters, 'objectType', args.object_type);
+  if (args.object_type !== undefined) {
+    addFilter(filters, 'objectType', splitObjectTypes(args.object_type).join(','));
+  }
   addFilter(filters, 'minRooms', args.min_rooms);
   addFilter(filters, 'maxRooms', args.max_rooms);
   addFilter(filters, 'minLivingArea', args.min_living_area);

@@ -141,4 +141,31 @@ describe('booli_get_listing', () => {
     expect(transport.calls).toHaveLength(0);
     await h.close();
   });
+
+  it.each(['Lagenhet', 'apartment', 'Villa,House'])(
+    'rejects an object_type outside Booli\'s fixed set (%s) before any request',
+    async (object_type) => {
+      const { h, transport } = await mount(route);
+      const res = await h.callTool('booli_search_listings', { area_id: '76', object_type });
+      expect(res.isError).toBe(true);
+      const text = (res.content as { type: string; text: string }[])[0]!.text;
+      expect(text).toMatch(/Lägenhet/);
+      expect(text).toMatch(/Tomt\/Mark/);
+      expect(transport.calls).toHaveLength(0);
+      await h.close();
+    },
+  );
+
+  it('accepts several comma-separated object types, trimming the spaces', async () => {
+    const { h, transport } = await mount(route);
+    const res = await h.callTool('booli_search_listings', {
+      area_id: '76',
+      object_type: 'Villa, Kedjehus-Parhus-Radhus',
+    });
+    expect(res.isError).toBeFalsy();
+    const input = transport.calls[0]!.variables.input as { filters: { key: string; value: string }[] };
+    expect(input.filters).toContainEqual({ key: 'objectType', value: 'Villa,Kedjehus-Parhus-Radhus' });
+    await h.close();
+  });
 });
+
