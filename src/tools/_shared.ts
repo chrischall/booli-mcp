@@ -1,4 +1,16 @@
-import { viewParam } from '@chrischall/mcp-utils';
+/**
+ * Shared search-input plumbing for the listings + sold tools.
+ *
+ * Booli's `searchForSale`/`searchSold` take a single `areaId` plus a
+ * `filters: [{key, value}]` array (see docs/BOOLI-API.md). This module
+ * centralises the zod raw-shape, the free-text → areaId resolution, and
+ * the arg → filter mapping so the listings and sold tools stay
+ * consistent; each layers its own price/date filters on top.
+ */
+import { z } from 'zod';
+import { McpToolError, viewParam } from '@chrischall/mcp-utils';
+import type { BooliClient } from '../client.js';
+import type { SearchFilter, SearchRequestInput } from '../graphql.js';
 
 /**
  * The rungs this server honours (`@chrischall/mcp-utils`' `view` vocabulary;
@@ -12,20 +24,6 @@ import { viewParam } from '@chrischall/mcp-utils';
  * No `raw`: `full` already returns the untouched node.
  */
 export const BOOLI_VIEWS = ['compact', 'full'] as const;
-
-/**
- * Shared search-input plumbing for the listings + sold tools.
- *
- * Booli's `searchForSale`/`searchSold` take a single `areaId` plus a
- * `filters: [{key, value}]` array (see docs/BOOLI-API.md). This module
- * centralises the zod raw-shape, the free-text → areaId resolution, and
- * the arg → filter mapping so the listings and sold tools stay
- * consistent; each layers its own price/date filters on top.
- */
-import { z } from 'zod';
-import { McpToolError } from '@chrischall/mcp-utils';
-import type { BooliClient } from '../client.js';
-import type { SearchFilter, SearchRequestInput } from '../graphql.js';
 
 /** Booli property types accepted by the `objectType` filter. */
 export const OBJECT_TYPES = [
