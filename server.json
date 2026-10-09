@@ -6,12 +6,12 @@
     "url": "https://github.com/chrischall/booli-mcp",
     "source": "github"
   },
-  "version": "2.1.7",
+  "version": "2.1.8",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "@chrischall/booli-mcp",
-      "version": "2.1.7",
+      "version": "2.1.8",
       "transport": {
         "type": "stdio"
       },
