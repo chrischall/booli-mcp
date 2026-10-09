@@ -13,7 +13,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatSold } from '../format.js';
-import { BOOLI_VIEWS, SOLD_SORT_KEYS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
+import { BOOLI_VIEWS, COMMON_BANDS, SOLD_SORT_KEYS, assertOrderedBands, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type Band, type CommonSearchArgs } from './_shared.js';
 import type { SearchFilter } from '../graphql.js';
 
 /** Sold-specific price + date filters. */
@@ -72,6 +72,14 @@ export function soldFilters(args: SoldSearchArgs): SearchFilter[] {
   return filters;
 }
 
+/** Every band a sold search (or market-stats sample) accepts. */
+export const SOLD_BANDS: readonly Band[] = [
+  ...COMMON_BANDS,
+  ['min_sold_price', 'max_sold_price'],
+  ['min_sold_sqm_price', 'max_sold_sqm_price'],
+  ['min_sold_date', 'max_sold_date'],
+];
+
 export const soldSearchSchema = z.object({ ...commonSearchShape, ...soldFilterShape });
 
 export function registerSoldTools(server: McpServer, client: BooliClient): void {
@@ -94,6 +102,7 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
       inputSchema: soldSearchSchema,
     },
     async (args: SoldSearchArgs) => {
+      assertOrderedBands(args, SOLD_BANDS);
       const areaId = await resolveAreaId(client, args);
       const filters = [...buildCommonFilters(args), ...soldFilters(args)];
       const input = buildSearchInput(areaId, filters, args, SOLD_DEFAULT_SORT);

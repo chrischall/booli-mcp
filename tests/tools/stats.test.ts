@@ -50,4 +50,17 @@ describe('booli_market_stats', () => {
     expect(input).toMatchObject({ sort: 'soldDate', ascending: false });
     await h.close();
   });
+
+  it('rejects an inverted band instead of reporting an empty sample', async () => {
+    const { h, transport } = await mount(() => ({
+      data: { searchSold: { totalCount: 0, pages: 0, result: [] } },
+    }));
+    const res = await h.callTool('booli_market_stats', {
+      area_id: '76', min_sold_date: '20250101', max_sold_date: '20240101',
+    });
+    expect(res.isError).toBe(true);
+    expect((res.content as { text: string }[])[0]!.text).toMatch(/min_sold_date.*max_sold_date/);
+    expect(transport.calls).toHaveLength(0);
+    await h.close();
+  });
 });

@@ -11,11 +11,12 @@ import { formatSold } from '../format.js';
 import { computeMarketStats } from '../stats.js';
 import { minifiedResult } from '@chrischall/mcp-utils';
 import {
+  assertOrderedBands,
   buildCommonFilters,
   buildSearchInput,
   resolveAreaId,
 } from './_shared.js';
-import { SOLD_DEFAULT_SORT, soldFilters, soldSearchSchema, type SoldSearchArgs } from './sold.js';
+import { SOLD_BANDS, SOLD_DEFAULT_SORT, soldFilters, soldSearchSchema, type SoldSearchArgs } from './sold.js';
 
 export function registerStatsTools(server: McpServer, client: BooliClient): void {
   server.registerTool(
@@ -37,6 +38,7 @@ export function registerStatsTools(server: McpServer, client: BooliClient): void
       inputSchema: soldSearchSchema,
     },
     async (args: SoldSearchArgs) => {
+      assertOrderedBands(args, SOLD_BANDS);
       const areaId = await resolveAreaId(client, args);
       const filters = [...buildCommonFilters(args), ...soldFilters(args)];
       const input = buildSearchInput(areaId, filters, args, SOLD_DEFAULT_SORT);

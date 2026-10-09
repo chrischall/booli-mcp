@@ -149,6 +149,37 @@ export function buildCommonFilters(args: CommonSearchArgs): SearchFilter[] {
   return filters;
 }
 
+/** A `[min, max]` pair of argument names that must not be inverted. */
+export type Band = readonly [min: string, max: string];
+
+/** The bands in {@link commonSearchShape}. */
+export const COMMON_BANDS: readonly Band[] = [
+  ['min_rooms', 'max_rooms'],
+  ['min_living_area', 'max_living_area'],
+  ['min_plot_area', 'max_plot_area'],
+  ['min_construction_year', 'max_construction_year'],
+];
+
+/**
+ * Throw an argument error when any band has `min > max`. Booli answers an
+ * inverted band with an empty result, which reads as "no matches" (and as
+ * a zero-sample market stat) rather than a bad request — so catch it before
+ * resolveAreaId spends a request. Values are numbers or fixed-width
+ * `YYYYMMDD` strings, both of which order correctly with `>`.
+ */
+export function assertOrderedBands(args: object, bands: readonly Band[]): void {
+  const values = args as Record<string, number | string | undefined>;
+  for (const [minKey, maxKey] of bands) {
+    const min = values[minKey];
+    const max = values[maxKey];
+    if (min !== undefined && max !== undefined && min > max) {
+      throw new McpToolError(
+        `Inverted range: ${minKey} (${min}) is greater than ${maxKey} (${max}). Swap them or drop one.`,
+      );
+    }
+  }
+}
+
 /**
  * Resolve the caller's area into a single `areaId`: an explicit `area_id`
  * wins, else the top hit for a free-text `location`. Throws a clean

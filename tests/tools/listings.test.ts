@@ -167,5 +167,17 @@ describe('booli_get_listing', () => {
     expect(input.filters).toContainEqual({ key: 'objectType', value: 'Villa,Kedjehus-Parhus-Radhus' });
     await h.close();
   });
-});
 
+  it.each([
+    [{ min_list_price: 5_000_000, max_list_price: 1_000_000 }, /min_list_price.*max_list_price/],
+    [{ min_list_sqm_price: 90_000, max_list_sqm_price: 10_000 }, /min_list_sqm_price.*max_list_sqm_price/],
+    [{ min_rooms: 5, max_rooms: 1 }, /min_rooms.*max_rooms/],
+  ])('rejects an inverted band %o before resolving the area', async (band, message) => {
+    const { h, transport } = await mount(route);
+    const res = await h.callTool('booli_search_listings', { location: 'Nacka', ...band });
+    expect(res.isError).toBe(true);
+    expect((res.content as { text: string }[])[0]!.text).toMatch(message);
+    expect(transport.calls).toHaveLength(0);
+    await h.close();
+  });
+});
