@@ -1,4 +1,16 @@
-import { viewParam } from '@chrischall/mcp-utils';
+/**
+ * Shared search-input plumbing for the listings + sold tools.
+ *
+ * Booli's `searchForSale`/`searchSold` take a single `areaId` plus a
+ * `filters: [{key, value}]` array (see docs/BOOLI-API.md). This module
+ * centralises the zod raw-shape, the free-text → areaId resolution, and
+ * the arg → filter mapping so the listings and sold tools stay
+ * consistent; each layers its own price/date filters on top.
+ */
+import { z } from 'zod';
+import { McpToolError, viewParam } from '@chrischall/mcp-utils';
+import type { BooliClient } from '../client.js';
+import type { SearchFilter, SearchRequestInput } from '../graphql.js';
 
 /**
  * The rungs this server honours (`@chrischall/mcp-utils`' `view` vocabulary;
@@ -13,20 +25,6 @@ import { viewParam } from '@chrischall/mcp-utils';
  */
 export const BOOLI_VIEWS = ['compact', 'full'] as const;
 
-/**
- * Shared search-input plumbing for the listings + sold tools.
- *
- * Booli's `searchForSale`/`searchSold` take a single `areaId` plus a
- * `filters: [{key, value}]` array (see docs/BOOLI-API.md). This module
- * centralises the zod raw-shape, the free-text → areaId resolution, and
- * the arg → filter mapping so the listings and sold tools stay
- * consistent; each layers its own price/date filters on top.
- */
-import { z } from 'zod';
-import { McpToolError } from '@chrischall/mcp-utils';
-import type { BooliClient } from '../client.js';
-import type { SearchFilter, SearchRequestInput } from '../graphql.js';
-
 /** Booli property types accepted by the `objectType` filter. */
 export const OBJECT_TYPES = [
   'Lägenhet',
@@ -36,6 +34,15 @@ export const OBJECT_TYPES = [
   'Gård',
   'Tomt/Mark',
 ] as const;
+
+/** Split a comma-separated `object_type` into trimmed tokens. */
+function splitObjectTypes(value: string): string[] {
+  return value.split(',').map((t) => t.trim());
+}
+
+function isObjectType(token: string): boolean {
+  return (OBJECT_TYPES as readonly string[]).includes(token);
+}
 
 /** Sort keys accepted by the for-sale search (direction via `ascending`). */
 export const SORT_KEYS = [
@@ -70,6 +77,9 @@ export const commonSearchShape = {
     ),
   object_type: z
     .string()
+    .refine((v) => splitObjectTypes(v).every(isObjectType), {
+      message: `object_type must be one or more of (comma-separated, exact spelling): ${OBJECT_TYPES.join(', ')}.`,
+    })
     .optional()
     .describe(
       `Property type(s), comma-separated, from: ${OBJECT_TYPES.join(', ')}.`,
@@ -122,7 +132,9 @@ function addFilter(filters: SearchFilter[], key: string, value: unknown): void {
 /** The filters common to both searches (everything except price/date). */
 export function buildCommonFilters(args: CommonSearchArgs): SearchFilter[] {
   const filters: SearchFilter[] = [];
-  addFilter(filters, 'objectType', args.object_type);
+  if (args.object_type !== undefined) {
+    addFilter(filters, 'objectType', splitObjectTypes(args.object_type).join(','));
+  }
   addFilter(filters, 'minRooms', args.min_rooms);
   addFilter(filters, 'maxRooms', args.max_rooms);
   addFilter(filters, 'minLivingArea', args.min_living_area);
@@ -135,6 +147,37 @@ export function buildCommonFilters(args: CommonSearchArgs): SearchFilter[] {
     addFilter(filters, 'isNewConstruction', args.is_new_construction ? 1 : 0);
   }
   return filters;
+}
+
+/** A `[min, max]` pair of argument names that must not be inverted. */
+export type Band = readonly [min: string, max: string];
+
+/** The bands in {@link commonSearchShape}. */
+export const COMMON_BANDS: readonly Band[] = [
+  ['min_rooms', 'max_rooms'],
+  ['min_living_area', 'max_living_area'],
+  ['min_plot_area', 'max_plot_area'],
+  ['min_construction_year', 'max_construction_year'],
+];
+
+/**
+ * Throw an argument error when any band has `min > max`. Booli answers an
+ * inverted band with an empty result, which reads as "no matches" (and as
+ * a zero-sample market stat) rather than a bad request — so catch it before
+ * resolveAreaId spends a request. Values are numbers or fixed-width
+ * `YYYYMMDD` strings, both of which order correctly with `>`.
+ */
+export function assertOrderedBands(args: object, bands: readonly Band[]): void {
+  const values = args as Record<string, number | string | undefined>;
+  for (const [minKey, maxKey] of bands) {
+    const min = values[minKey];
+    const max = values[maxKey];
+    if (min !== undefined && max !== undefined && min > max) {
+      throw new McpToolError(
+        `Inverted range: ${minKey} (${min}) is greater than ${maxKey} (${max}). Swap them or drop one.`,
+      );
+    }
+  }
 }
 
 /**

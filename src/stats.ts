@@ -8,13 +8,22 @@
  * exactly as before. Operates on the normalised {@link PropertySummary}
  * shape (kronor + m²), skipping rows where the relevant field is null (or
  * not a finite number) so a sparse dataset still yields honest medians.
- * Always check `sample_size` before trusting a thin median.
+ * `sample_size` counts every row; the `*_count` fields count the rows that
+ * actually fed each metric (a row with a null `sold_price` still counts
+ * toward `sample_size` but not toward `median_sold_price`), so check the
+ * matching count before trusting a thin median.
  */
-import { computeMarketStats as computeSharedMarketStats } from '@chrischall/realty-core';
+import { computeMarketStats as computeSharedMarketStats, numericColumn } from '@chrischall/realty-core';
 import type { PropertySummary } from './format.js';
 
 export interface MarketStats {
   sample_size: number;
+  /** Rows with a usable `sold_price` (feeds the sold-price metrics). */
+  sold_price_count: number;
+  /** Rows with a usable `price_per_sqm`. */
+  price_per_sqm_count: number;
+  /** Rows with a usable `sold_vs_asking_percent`. */
+  price_change_count: number;
   median_sold_price: number | null;
   average_sold_price: number | null;
   median_price_per_sqm: number | null;
@@ -36,6 +45,9 @@ export function computeMarketStats(rows: PropertySummary[]): MarketStats {
   // shape is pinned here and not by realty-core's construction order.
   return {
     sample_size: s.sample_size,
+    sold_price_count: numericColumn(rows, 'sold_price').length,
+    price_per_sqm_count: numericColumn(rows, 'price_per_sqm').length,
+    price_change_count: numericColumn(rows, 'sold_vs_asking_percent').length,
     median_sold_price: s.median_sold_price,
     average_sold_price: s.average_sold_price,
     median_price_per_sqm: s.median_price_per_sqm,

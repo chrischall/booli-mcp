@@ -21,6 +21,7 @@ export function registerAreaTools(server: McpServer, client: BooliClient): void 
       annotations: {
         title: 'Resolve a Booli area',
         readOnlyHint: true,
+        destructiveHint: false,
         idempotentHint: true,
         openWorldHint: true,
       },

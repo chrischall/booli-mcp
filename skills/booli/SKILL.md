@@ -66,7 +66,10 @@ hit for you.
   `soldDate` descending (most recent sales first), as for `booli_market_stats`.
 - `booli_market_stats` — median/average sold price, price per m², and
   average over/under-asking % for an area (same filters as the sold
-  search, over one page). Check `sample_size` before trusting a thin median.
+  search, over ONE page — `page`/`pages` say which; `total_count` is the
+  whole matching set, not the sample). `sample_size` is the rows on the page
+  and `sold_price_count`/`price_per_sqm_count`/`price_change_count` the rows
+  behind each metric — check them before trusting a thin median.
 
 ## Diagnostics
 

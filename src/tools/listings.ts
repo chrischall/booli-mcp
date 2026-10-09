@@ -11,7 +11,7 @@ import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatDetail, formatListing } from '../format.js';
-import { BOOLI_VIEWS, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
+import { BOOLI_VIEWS, COMMON_BANDS, assertOrderedBands, buildCommonFilters, buildSearchInput, commonSearchShape, resolveAreaId, type CommonSearchArgs } from './_shared.js';
 import type { SearchFilter } from '../graphql.js';
 
 /** For-sale price filters layered on top of the shared search shape. */
@@ -42,11 +42,18 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
       annotations: {
         title: 'Search Booli for-sale listings',
         readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
       inputSchema: z.object({ ...commonSearchShape, ...listingPriceShape }),
     },
     async (args: ListingSearchArgs) => {
+      assertOrderedBands(args, [
+        ...COMMON_BANDS,
+        ['min_list_price', 'max_list_price'],
+        ['min_list_sqm_price', 'max_list_sqm_price'],
+      ]);
       const areaId = await resolveAreaId(client, args);
       const filters: SearchFilter[] = buildCommonFilters(args);
       if (args.min_list_price !== undefined)
@@ -83,6 +90,7 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
       annotations: {
         title: 'Get a Booli property',
         readOnlyHint: true,
+        destructiveHint: false,
         idempotentHint: true,
         openWorldHint: true,
       },
