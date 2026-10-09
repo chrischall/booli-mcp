@@ -42,6 +42,8 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
       annotations: {
         title: 'Search Booli for-sale listings',
         readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
       inputSchema: z.object({ ...commonSearchShape, ...listingPriceShape }),
@@ -83,6 +85,7 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
       annotations: {
         title: 'Get a Booli property',
         readOnlyHint: true,
+        destructiveHint: false,
         idempotentHint: true,
         openWorldHint: true,
       },

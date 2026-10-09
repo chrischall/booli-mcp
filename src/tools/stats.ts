@@ -30,6 +30,8 @@ export function registerStatsTools(server: McpServer, client: BooliClient): void
       annotations: {
         title: 'Booli sold-price market statistics',
         readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
       inputSchema: soldSearchSchema,

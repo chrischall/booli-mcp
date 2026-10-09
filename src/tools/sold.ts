@@ -87,6 +87,8 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
       annotations: {
         title: 'Search Booli sold listings',
         readOnlyHint: true,
+        destructiveHint: false,
+        idempotentHint: true,
         openWorldHint: true,
       },
       inputSchema: soldSearchSchema,
