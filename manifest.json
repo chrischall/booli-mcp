@@ -32,7 +32,39 @@
       "command": "node",
       "args": [
         "${__dirname}/dist/bundle.js"
-      ]
+      ],
+      "env": {
+        "BOOLI_TRANSPORT": "${user_config.transport}",
+        "BOOLI_WS_PORT": "${user_config.ws_port}",
+        "FETCHPROXY_WS_HOST": "${user_config.fetchproxy_ws_host}",
+        "FETCHPROXY_IDENTITY_DIR": "${user_config.fetchproxy_identity_dir}"
+      }
+    }
+  },
+  "user_config": {
+    "transport": {
+      "type": "string",
+      "title": "Transport",
+      "description": "Optional. Selects the path: auto (default — direct fetch first, browser-bridge fallback when walled), fetchproxy (always the bridge), or direct.",
+      "required": false
+    },
+    "ws_port": {
+      "type": "string",
+      "title": "Bridge WebSocket port",
+      "description": "Optional. The fetchproxy fleet shares WS port 37149; leave blank to use it.",
+      "required": false
+    },
+    "fetchproxy_ws_host": {
+      "type": "string",
+      "title": "Bridge bind interface (hosted only)",
+      "description": "Optional. Bind interface for the bridge, a literal IP only (anything else is ignored); default 127.0.0.1. Keep on loopback — it exists for a hosted child in its own network namespace. Leave blank.",
+      "required": false
+    },
+    "fetchproxy_identity_dir": {
+      "type": "string",
+      "title": "Bridge identity directory (hosted only)",
+      "description": "Optional. Where to store the long-term bridge identity keypair, an absolute path only (anything else is ignored); default ~/.fetchproxy/identity/. Exists for a host that runs a separate child per caller. Leave blank.",
+      "required": false
     }
   },
   "tools": [

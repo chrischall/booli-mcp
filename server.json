@@ -14,7 +14,33 @@
       "version": "2.1.7",
       "transport": {
         "type": "stdio"
-      }
+      },
+      "environmentVariables": [
+        {
+          "name": "BOOLI_TRANSPORT",
+          "description": "Selects the path: auto (default — direct fetch first, browser-bridge fallback when walled), fetchproxy (always the bridge), or direct.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "BOOLI_WS_PORT",
+          "description": "Override the fetchproxy WebSocket port (the fleet shares 37149).",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "FETCHPROXY_WS_HOST",
+          "description": "Bridge bind interface, a literal IP only (default 127.0.0.1). Keep on loopback; exists for a hosted child in its own network namespace.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "FETCHPROXY_IDENTITY_DIR",
+          "description": "Absolute path for the long-term bridge identity keypair (default ~/.fetchproxy/identity/). Exists for a host that runs a separate child per caller.",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
     }
   ]
 }
