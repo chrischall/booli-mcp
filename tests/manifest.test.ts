@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createTestHarness, routedClient } from './helpers.js';
@@ -41,5 +41,13 @@ describe('install surfaces match the server', () => {
     const vars = readJson('server.json').packages[0].environmentVariables as { name: string; isRequired: boolean }[];
     expect(vars.map((v) => v.name).sort()).toEqual(ENV);
     expect(vars.every((v) => v.isRequired === false)).toBe(true);
+  });
+
+  it('.claude-plugin/plugin.json declares its MCP config under mcpServers, pointing at a real file', () => {
+    const plugin = readJson('.claude-plugin/plugin.json');
+    // Claude Code reads `mcpServers`; an `mcp` key is ignored at load time.
+    expect(plugin).not.toHaveProperty('mcp');
+    expect(plugin.mcpServers).toBe('./.mcp.json');
+    expect(existsSync(join(root, plugin.mcpServers))).toBe(true);
   });
 });
