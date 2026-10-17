@@ -167,6 +167,22 @@ describe('DirectTransport.graphql', () => {
     expect(calls).toHaveLength(2);
   });
 
+  it('gives up after maxRetries on a persistent 429 with the status error', async () => {
+    const { impl, calls } = stubFetch([{ ok: false, status: 429, text: 'slow down' }]);
+    const t = new DirectTransport({ fetchImpl: impl, maxRetries: 1 });
+    await expect(t.graphql('q', {})).rejects.toThrow(/^Booli GraphQL HTTP 429$/);
+    expect(calls).toHaveLength(2);
+  });
+
+  it('retries a network error and rethrows the last one as-is', async () => {
+    const impl = vi.fn(async () => {
+      throw new Error('ECONNRESET');
+    });
+    const t = new DirectTransport({ fetchImpl: impl as unknown as typeof fetch, maxRetries: 1 });
+    await expect(t.graphql('q', {})).rejects.toThrow(/^ECONNRESET$/);
+    expect(impl).toHaveBeenCalledTimes(2);
+  });
+
   it('surfaces a non-Error network rejection after retries', async () => {
     const impl = (async () => {
       throw 'raw failure';
