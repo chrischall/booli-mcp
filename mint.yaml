@@ -38,3 +38,19 @@ egress:
     # booli.se is never dialled (it appears only in URLs this server builds
     # and returns, src/format.ts), so it is not listed.
     - www.booli.se
+examples:
+  # Sample prompts for the public catalog. Each maps onto real read-only
+  # tools: booli_search_areas -> booli_search_listings / booli_search_sold /
+  # booli_market_stats, and booli_get_listing for one property.
+  - prompt: >-
+      Find apartments for sale in Södermalm, Stockholm with at least 2 rooms
+      under 5 million SEK.
+    note: Resolves the area, then searches active for-sale listings.
+  - prompt: >-
+      What have 3-room apartments in Vasastan sold for since January, and how
+      far over asking did they go?
+    note: Uses sold prices (slutpriser) with over/under-asking %.
+  - prompt: >-
+      Give me the median sold price and price per m² for villas in Lund
+      municipality.
+    note: Aggregates one page of recent sold results for the area.
