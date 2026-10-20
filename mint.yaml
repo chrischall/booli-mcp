@@ -1,13 +1,15 @@
 version: 1
 name: Booli
 slug: booli
+# BROWSER-BRIDGE MCP: it reaches its site through the user's signed-in tab
+# via the fetchproxy bridge, so a registration also needs runtime fly-shared,
+# bridge: true and a bridgePortEnv — registration fields this manifest has no
+# schema for. state.dataDir below is required for bridge and is why it is
+# declared.
 summary: >-
-  Booli.se real estate tools for Claude — search listings, sold prices,
-  areas, and market stats BROWSER-BRIDGE MCP: it reaches its site through
-  the user's signed-in tab via the fetchproxy bridge, so a registration also
-  needs runtime fly-shared, bridge: true and a bridgePortEnv — registration
-  fields this manifest has no schema for. state.dataDir below is required
-  for bridge and is why it is declared.
+  Search Booli.se, Sweden's property portal: homes for sale, sold prices
+  (slutpriser) with over/under-asking %, area lookup, and market stats like
+  median price per m².
 env:
   - name: BOOLI_TRANSPORT
     required: false
