@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.1.11](https://github.com/chrischall/booli-mcp/compare/v2.1.10...v2.1.11) (2026-10-20)
+
+
+### Bug Fixes
+
+* **deps:** bump the production-dependencies group with 2 updates ([#140](https://github.com/chrischall/booli-mcp/issues/140)) ([c027bac](https://github.com/chrischall/booli-mcp/commit/c027bacf31366f8a4b3daa53517f4520f6f8fb2f))
+
+
+### Refactor
+
+* **fetchproxy:** start the bridge through mcp-utils createLazyTransport ([#144](https://github.com/chrischall/booli-mcp/issues/144)) ([a68f7f8](https://github.com/chrischall/booli-mcp/commit/a68f7f825ec4181aebe14592323e87bb0770ef68))
+
+
+### Documentation
+
+* **mint:** add sample prompts for the public catalog ([#142](https://github.com/chrischall/booli-mcp/issues/142)) ([91b8f4a](https://github.com/chrischall/booli-mcp/commit/91b8f4a3ba99a36ba685d8e867a55e0785d544f2))
+* **mint:** fit the catalog summary within 200 characters ([#143](https://github.com/chrischall/booli-mcp/issues/143)) ([91dbac7](https://github.com/chrischall/booli-mcp/commit/91dbac7f427c901bbc5ae6a664fb53a23109c92f))
+
 ## [2.1.10](https://github.com/chrischall/booli-mcp/compare/v2.1.9...v2.1.10) (2026-10-17)
 
 
