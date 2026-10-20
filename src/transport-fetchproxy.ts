@@ -19,6 +19,8 @@
 import {
   bridgeErrorInfo,
   createFetchproxyTransport,
+  createLazyTransport,
+  type LazyTransport,
   type BridgeHealthcheckTransport,
   type FetchproxyFetchInit,
   type FetchproxyServer,
@@ -83,11 +85,18 @@ export interface FetchproxyTransportOptions {
 }
 
 export class BooliFetchproxyTransport implements BooliTransport {
-  private readonly bridge: BooliBridge;
-  private startPromise: Promise<void> | undefined;
+  /**
+   * The bridge, started once (`@chrischall/mcp-utils/fetchproxy`
+   * `createLazyTransport`, fleet-audit#1342): concurrent callers share one
+   * in-flight `start()`, and a rejected start is forgotten so a transient
+   * failure is retried on the next request instead of sticking forever.
+   */
+  private readonly lazy: LazyTransport<BooliBridge>;
 
   constructor(opts: FetchproxyTransportOptions = {}) {
-    this.bridge =
+    // Built eagerly (construction binds nothing), so a bad BOOLI_WS_PORT
+    // still surfaces at construction rather than on the first request.
+    const bridge: BooliBridge =
       opts.bridge ??
       createFetchproxyTransport({
         port: opts.port ?? readPortEnv('BOOLI_WS_PORT', DEFAULT_WS_PORT),
@@ -103,22 +112,7 @@ export class BooliFetchproxyTransport implements BooliTransport {
         fetchTimeoutMs: opts.timeoutMs ?? 20_000,
         ...(opts.createServer ? { createServer: opts.createServer } : {}),
       });
-  }
-
-  /**
-   * The bridge, started. `start()` runs single-flight (concurrent callers
-   * share one start) and clears on rejection so a transient failure is
-   * retried on the next request instead of sticking forever.
-   */
-  private async ready(): Promise<BooliBridge> {
-    if (!this.startPromise) {
-      this.startPromise = this.bridge.start().catch((err: unknown) => {
-        this.startPromise = undefined;
-        throw err;
-      });
-    }
-    await this.startPromise;
-    return this.bridge;
+    this.lazy = createLazyTransport(() => bridge);
   }
 
   /** The bridge leg. The bridge's live state comes via {@link bridgeTransport}. */
@@ -132,7 +126,7 @@ export class BooliFetchproxyTransport implements BooliTransport {
    * `start()` too, so this is safe at any point in the lifecycle.
    */
   bridgeTransport(): BridgeHealthcheckTransport {
-    return this.bridge;
+    return this.lazy.transport();
   }
 
   async graphql<T>(
@@ -141,7 +135,7 @@ export class BooliFetchproxyTransport implements BooliTransport {
   ): Promise<GraphQLResponse<T>> {
     let result: { status: number; body: string };
     try {
-      const bridge = await this.ready();
+      const bridge = await this.lazy.ready();
       result = await bridge.fetch({
         method: 'POST',
         path: '/graphql',

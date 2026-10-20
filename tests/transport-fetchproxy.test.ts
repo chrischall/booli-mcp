@@ -90,6 +90,20 @@ describe('BooliFetchproxyTransport', () => {
     expect(bridge.start).toHaveBeenCalledOnce();
   });
 
+  it('concurrent first calls share one in-flight start', async () => {
+    let release!: () => void;
+    const start = vi.fn(
+      () => new Promise<void>((resolve) => { release = resolve; }),
+    );
+    const bridge = fakeBridge({ start });
+    const t = new BooliFetchproxyTransport({ bridge });
+    const both = Promise.all([t.graphql('q', {}), t.graphql('q', {})]);
+    await Promise.resolve();
+    release();
+    await expect(both).resolves.toHaveLength(2);
+    expect(start).toHaveBeenCalledOnce();
+  });
+
   it('retries start after a failure (single-flight clears on reject)', async () => {
     const start = vi
       .fn()
