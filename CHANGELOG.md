@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.12](https://github.com/chrischall/booli-mcp/compare/v2.1.11...v2.1.12) (2026-10-26)
+
+
+### Bug Fixes
+
+* **deps:** bump the production-dependencies group with 2 updates ([#145](https://github.com/chrischall/booli-mcp/issues/145)) ([10c154b](https://github.com/chrischall/booli-mcp/commit/10c154b92e911bae77dd1548d6e8838ddc1069f4))
+
 ## [2.1.11](https://github.com/chrischall/booli-mcp/compare/v2.1.10...v2.1.11) (2026-10-20)
 
 
