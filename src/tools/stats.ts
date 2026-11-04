@@ -6,6 +6,7 @@
  * Reports `page`/`pages` beside `total_count` and a per-metric row count
  * beside `sample_size` — treat a thin sample's median with care.
  */
+import { STATS_META } from './hints.js';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
 import { formatSold } from '../format.js';
@@ -33,6 +34,7 @@ export function registerStatsTools(server: McpServer, client: BooliClient): void
         'is the rows on the page; `sold_price_count` / `price_per_sqm_count` / ' +
         '`price_change_count` are the rows that fed each metric. Check them ' +
         'before trusting a thin median. Read-only.',
+      _meta: STATS_META,
       annotations: {
         title: 'Booli sold-price market statistics',
         readOnlyHint: true,

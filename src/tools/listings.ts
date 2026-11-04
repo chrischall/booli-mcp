@@ -6,6 +6,7 @@
  * {@link PropertySummary} by default (`view: 'compact'`). Detail fetches one
  * property by its residence id (the `/bostad/<id>` number).
  */
+import { LISTINGS_META, LISTING_META } from './hints.js';
 import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
@@ -39,6 +40,7 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
         '(from booli_search_areas) or a free-text `location`, and filter by price, ' +
         'rooms, living area, plot, object type, construction year. Paginated by ' +
         '`page`; check `total_count`/`pages`. Read-only.',
+      _meta: LISTINGS_META,
       annotations: {
         title: 'Search Booli for-sale listings',
         readOnlyHint: true,
@@ -87,6 +89,7 @@ export function registerListingTools(server: McpServer, client: BooliClient): vo
         'Full detail for one property by its Booli residence id — the number in a ' +
         'booli.se/bostad/<id> URL, or the `residence_id` from a search result. ' +
         'Works for both active and sold properties. Read-only.',
+      _meta: LISTING_META,
       annotations: {
         title: 'Get a Booli property',
         readOnlyHint: true,

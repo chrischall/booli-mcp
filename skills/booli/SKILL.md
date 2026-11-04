@@ -71,6 +71,18 @@ hit for you.
   and `sold_price_count`/`price_per_sqm_count`/`price_change_count` the rows
   behind each metric — check them before trusting a thin median.
 
+## In context groups
+
+booli-mcp sits in the **home** group (mcp-host context groups). It has no
+canonical read: Booli has no account, so there is nothing of yours to list
+(no saved homes or watched areas, so no subject), and every search needs a
+place first. A group ask like "what's new at home?" passes Booli by; it
+joins when the ask names a place — "…and what have 3-room flats in Nacka
+sold for lately?" reaches `booli_search_sold`, and "homes for sale in
+Södermalm" reaches `booli_search_listings`. Every tool is a `lookup`.
+Booli is browser-bridged: when the bridge has no www.booli.se tab, the
+group answers "Booli needs your browser open" rather than guessing.
+
 ## Diagnostics
 
 - `booli_healthcheck` — one-call probe of the data path (direct or bridge).

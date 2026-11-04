@@ -3,6 +3,7 @@
  * searches scope by a numeric `area_id`, so this is the usual first step:
  * name → area id → pass into the search tools.
  */
+import { AREA_META } from './hints.js';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
 import type { BooliClient } from '../client.js';
@@ -18,6 +19,7 @@ export function registerAreaTools(server: McpServer, client: BooliClient): void 
         'Resolve a place name to Booli areas — municipalities, districts, streets — ' +
         'each with its `area_id` to pass as `area_id` into booli_search_listings / ' +
         'booli_search_sold. Read-only.',
+      _meta: AREA_META,
       annotations: {
         title: 'Resolve a Booli area',
         readOnlyHint: true,
