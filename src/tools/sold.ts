@@ -8,6 +8,7 @@
  * sold — is `booli_get_listing`, since Booli resolves both by residence
  * id.)
  */
+import { SOLD_META } from './hints.js';
 import { minifiedResult, resolveView, viewParam } from '@chrischall/mcp-utils';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/server';
@@ -92,6 +93,7 @@ export function registerSoldTools(server: McpServer, client: BooliClient): void 
         'price and over/under-asking % — the comparables for valuation. Scope by ' +
         '`area_id` or free-text `location`, filter by sold price, sold date, rooms, ' +
         'area, object type. Paginated by `page`. Read-only.',
+      _meta: SOLD_META,
       annotations: {
         title: 'Search Booli sold listings',
         readOnlyHint: true,
