@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.2.0](https://github.com/chrischall/booli-mcp/compare/v2.1.11...v2.2.0) (2026-11-04)
+
+
+### Features
+
+* context-group hints ([#149](https://github.com/chrischall/booli-mcp/issues/149)) ([24f6cc3](https://github.com/chrischall/booli-mcp/commit/24f6cc3a4c0c8048e11644fbba5b27593c8044d4))
+
+
+### Bug Fixes
+
+* **deps:** bump the production-dependencies group with 2 updates ([#145](https://github.com/chrischall/booli-mcp/issues/145)) ([10c154b](https://github.com/chrischall/booli-mcp/commit/10c154b92e911bae77dd1548d6e8838ddc1069f4))
+* **deps:** bump the production-dependencies group with 2 updates ([#148](https://github.com/chrischall/booli-mcp/issues/148)) ([1beb566](https://github.com/chrischall/booli-mcp/commit/1beb566d57307496b6f22118507626c683f430a4))
+
 ## [2.1.11](https://github.com/chrischall/booli-mcp/compare/v2.1.10...v2.1.11) (2026-10-20)
 
 
