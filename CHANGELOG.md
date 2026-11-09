@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/chrischall/booli-mcp/compare/v2.2.0...v2.2.1) (2026-11-09)
+
+
+### Bug Fixes
+
+* **deps:** bump @chrischall/mcp-utils ([#151](https://github.com/chrischall/booli-mcp/issues/151)) ([b265a57](https://github.com/chrischall/booli-mcp/commit/b265a579e6d2b2b46588b60075ed45d63dfd55b2))
+
 ## [2.2.0](https://github.com/chrischall/booli-mcp/compare/v2.1.11...v2.2.0) (2026-11-04)
 
 
